@@ -1,0 +1,14 @@
+Flask==2.3.0
+Flask-Login==0.6.2
+Flask-SocketIO==5.3.4
+Flask-Caching==2.0.2
+Flask-Mail==0.9.1
+Werkzeug==2.3.0
+python-socketio==5.9.0
+python-engineio==4.7.1
+python-dotenv==1.0.0
+google-genai==0.3.0
+reportlab==4.0.7
+pytubefix==6.0.5
+Pillow==10.0.0
+requests==2.31.0

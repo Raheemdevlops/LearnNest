@@ -1,0 +1,802 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor Dashboard - LearnNest{% endblock %}
+
+{% block content %}
+<div class="instructor-dashboard">
+    <!-- Animated Background -->
+    <div class="cyber-bg">
+        <div class="grid-lines"></div>
+        <div class="scan-effect"></div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="cyber-title">INSTRUCTOR DASHBOARD</h1>
+                <p class="welcome-text">
+                    <span class="neon-text">Welcome,</span> <strong>{{ current_user.full_name }}</strong>
+                </p>
+                <div class="datetime-cards">
+                    <div class="datetime-card enhanced-datetime">
+                        <span class="icon glow-icon">📅</span>
+                        <div>
+                            <span class="datetime-label">Today's Date</span>
+                            <span class="datetime-value" id="current-date">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-avatar-section">
+            <div class="avatar-container">
+                <div class="avatar-ring"></div>
+                <div class="avatar-display">
+                    {% if current_user.profile_picture %}
+                        <img src="/uploads/{{ current_user.profile_picture }}" alt="Profile" class="avatar-img">
+                    {% else %}
+                        <span class="avatar-emoji">👨‍🏫</span>
+                    {% endif %}
+                </div>
+            </div>
+            <button class="edit-btn" onclick="openProfileModal()">
+                <i class="fas fa-edit"></i> Edit Profile
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay" onclick="closeProfileModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button class="close-btn" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" value="{{ current_user.full_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" value="{{ current_user.email }}" disabled>
+                    <small>Email cannot be changed</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Profile Picture</label>
+                    <div class="file-upload-area">
+                        <input type="file" id="profile_picture" name="profile_picture" accept="image/*" onchange="previewImage(this)">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload</p>
+                        </div>
+                        <img id="imagePreview" class="image-preview" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_courses }}</div>
+                <div class="stat-label">Courses</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_students }}</div>
+                <div class="stat-label">Students</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.pending_enrollments }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✓</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.active_courses }}</div>
+                <div class="stat-label">Active Courses</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="action-cards">
+        <a href="{{ url_for('instructor_courses') }}" class="action-card">
+            <div class="card-icon">📚</div>
+            <h3>My Courses</h3>
+            <p>Manage your courses</p>
+            <span class="arrow">→</span>
+        </a>
+        
+        <a href="{{ url_for('instructor_enrollments') }}" class="action-card">
+            <div class="card-icon">👥</div>
+            <h3>Enrollments</h3>
+            <p>Approve student requests</p>
+            <span class="arrow">→</span>
+        </a>
+        
+        <a href="{{ url_for('messaging_hub') }}" class="action-card">
+            <div class="card-icon">💬</div>
+            <h3>Messages</h3>
+            <p>Contact students</p>
+            <span class="arrow">→</span>
+        </a>
+        
+        <a href="{{ url_for('instructor_courses') }}" class="action-card">
+            <div class="card-icon">➕</div>
+            <h3>Create Course</h3>
+            <p>Add new course</p>
+            <span class="arrow">→</span>
+        </a>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+        <h2 class="section-title">Quick Links</h2>
+        <div class="activity-links">
+            <a href="{{ url_for('instructor_courses') }}" class="activity-link">
+                <i class="fas fa-graduation-cap"></i> View All Courses
+            </a>
+            <a href="{{ url_for('instructor_enrollments') }}" class="activity-link">
+                <i class="fas fa-clock"></i> Pending Approvals
+            </a>
+            <a href="{{ url_for('messaging_hub') }}" class="activity-link">
+                <i class="fas fa-envelope"></i> Messages
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update date/time
+function updateDateTime() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    document.getElementById('current-date').textContent = dateStr;
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+// Profile Modal Functions
+function openProfileModal() {
+    document.getElementById('profileModal').style.display = 'flex';
+}
+
+function closeProfileModal(event) {
+    if (event && event.target.id !== 'profileModal') return;
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            document.querySelector('.upload-placeholder').style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+});
+</script>
+
+<style>
+:root {
+    --cyber-black: #000000;
+    --cyber-dark: #0a0a0a;
+    --cyber-gray: #1a1a1a;
+    --cyber-border: #2a2a2a;
+    --cyber-primary: #00d4ff;
+    --cyber-success: #00ff88;
+    --cyber-warning: #ffaa00;
+    --cyber-danger: #ff0055;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.instructor-dashboard {
+    position: relative;
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    background: var(--cyber-black);
+    color: #ffffff;
+}
+
+/* Animated Background */
+.cyber-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.15;
+}
+
+.grid-lines {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(var(--cyber-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyber-border) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50px); }
+}
+
+.scan-effect {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+    box-shadow: 0 0 15px var(--cyber-primary);
+    animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+    0%, 100% { top: 0; }
+    50% { top: 100%; }
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 3rem;
+    align-items: center;
+    padding: 3rem;
+    margin-bottom: 3rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(10, 10, 30, 0.9));
+    border: 2px solid var(--cyber-primary);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+    animation: slideIn 0.8s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cyber-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: #ffffff;
+    text-shadow: 0 0 20px var(--cyber-primary), 0 0 40px rgba(0, 212, 255, 0.5);
+    margin-bottom: 1rem;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { text-shadow: 0 0 15px rgba(0, 212, 255, 0.8), 0 0 35px rgba(0, 212, 255, 0.4); }
+    50% { text-shadow: 0 0 30px rgba(0, 212, 255, 1), 0 0 50px rgba(0, 212, 255, 0.6); }
+}
+
+.welcome-text {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.neon-text {
+    color: var(--cyber-primary);
+    text-shadow: 0 0 10px var(--cyber-primary);
+    font-weight: 600;
+}
+
+.datetime-cards {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.datetime-card {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 200, 0.1));
+    border: 1.5px solid rgba(0, 212, 255, 0.4);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.datetime-card:hover {
+    border-color: var(--cyber-primary);
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 200, 0.15));
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.datetime-card .icon {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.datetime-label {
+    font-size: 0.65rem;
+    color: rgba(200, 200, 200, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    display: block;
+    line-height: 1;
+}
+
+.datetime-value {
+    font-size: 0.85rem;
+    color: var(--cyber-primary);
+    font-weight: 800;
+    text-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+    letter-spacing: 0.02em;
+    display: block;
+    line-height: 1.2;
+}
+
+.datetime-value.online {
+    color: var(--cyber-success);
+    text-shadow: 0 0 6px rgba(0, 255, 136, 0.6);
+}
+
+/* Avatar Section */
+.hero-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.avatar-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+}
+
+.avatar-ring {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border: 3px solid var(--cyber-primary);
+    border-radius: 50%;
+    animation: rotate 8s linear infinite;
+    box-shadow: 0 0 30px var(--cyber-primary), inset 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.avatar-display {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    top: 10px;
+    left: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #000000, #1a0033, var(--cyber-primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--cyber-primary);
+    overflow: hidden;
+    font-size: 3rem;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.edit-btn {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--cyber-primary), #00a0d4);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.edit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #000000, #0a0a0a);
+    border: 2px solid var(--cyber-primary);
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.modal-header h2 {
+    color: var(--cyber-primary);
+    font-size: 1.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--cyber-primary);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    transform: scale(1.2);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    color: var(--cyber-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.form-group small {
+    display: block;
+    color: #888;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.file-upload-area {
+    position: relative;
+    border: 2px dashed rgba(0, 212, 255, 0.5);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: var(--cyber-primary);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.file-upload-area input[type="file"] {
+    display: none;
+}
+
+.upload-placeholder {
+    pointer-events: none;
+}
+
+.upload-placeholder i {
+    font-size: 2.5rem;
+    color: var(--cyber-primary);
+    margin-bottom: 0.5rem;
+}
+
+.upload-placeholder p {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.btn-cancel {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-submit {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--cyber-primary), #00a0d4);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-submit:hover {
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Stats Grid */
+.stats-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(10, 10, 30, 0.9));
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--cyber-primary);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Action Cards */
+.action-cards {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.action-card {
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(10, 10, 30, 0.9));
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 15px;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.action-card:hover::before {
+    left: 100%;
+}
+
+.action-card:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.3);
+    transform: translateY(-5px);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.action-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.action-card p {
+    font-size: 0.9rem;
+    color: #888;
+    flex: 1;
+}
+
+.action-card .arrow {
+    color: var(--cyber-primary);
+    font-size: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Activity Section */
+.activity-section {
+    position: relative;
+    z-index: 1;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(10, 10, 30, 0.9));
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 15px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: var(--cyber-primary);
+    margin-bottom: 1.5rem;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.activity-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.activity-link {
+    padding: 0.75rem 1.5rem;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    color: var(--cyber-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-link:hover {
+    background: rgba(0, 212, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        padding: 2rem;
+    }
+    
+    .cyber-title {
+        font-size: 1.8rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .action-cards {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{% endblock %}

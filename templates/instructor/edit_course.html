@@ -1,0 +1,1049 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Course - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Enhanced Header -->
+    <div class="page-hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="breadcrumb">
+                    <a href="{{ url_for('instructor_courses') }}" class="breadcrumb-link">
+                        <i class="fas fa-arrow-left"></i>
+                        My Courses
+                    </a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-current">Edit Course</span>
+                </div>
+                <h1>Edit Course</h1>
+                <p>Update your course information and settings</p>
+            </div>
+            <div class="hero-actions">
+                <a href="{{ url_for('instructor_courses') }}" class="btn btn-ghost">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Courses
+                </a>
+            </div>
+        </div>
+        <div class="hero-background">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+        </div>
+    </div>
+    
+    <div class="form-container-enhanced">
+        <form method="POST" class="course-form-enhanced">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            
+            <!-- Course Header Card -->
+            <div class="course-header-card">
+                <div class="course-identity">
+                    <div class="course-avatar">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="course-info">
+                        <div class="course-code-display">{{ course.course_code }}</div>
+                        <div class="course-meta">
+                            <span class="meta-item">
+                                <i class="fas fa-calendar-plus"></i>
+                                Created {{ course.created_at[:10] if course.created_at else 'N/A' }}
+                            </span>
+                            <span class="meta-item">
+                                <i class="fas fa-edit"></i>
+                                Last updated: Now
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="course-status">
+                    <div class="status-indicator active">
+                        <i class="fas fa-circle"></i>
+                        Active Course
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Sections Grid -->
+            <div class="form-sections-grid">
+                <!-- Course Information Section -->
+                <div class="form-section-card">
+                    <div class="section-header">
+                        <div class="section-icon primary">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="section-title">
+                            <h3>Course Information</h3>
+                            <p>Basic details about your course</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-fields">
+                        <div class="form-field">
+                            <label for="title" class="field-label">
+                                <span>Course Title</span>
+                                <span class="required">*</span>
+                            </label>
+                            <div class="field-input">
+                                <input type="text" 
+                                       id="title" 
+                                       name="title" 
+                                       required
+                                       value="{{ course.title }}"
+                                       placeholder="e.g., Introduction to Computer Science"
+                                       class="input-enhanced">
+                                <div class="field-icon">
+                                    <i class="fas fa-heading"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="category" class="field-label">Category</label>
+                            <div class="field-input">
+                                <select id="category" name="category" class="select-enhanced">
+                                    <option value="">Select a category</option>
+                                    <option value="Computer Science" {% if course.category == 'Computer Science' %}selected{% endif %}>Computer Science</option>
+                                    <option value="Mathematics" {% if course.category == 'Mathematics' %}selected{% endif %}>Mathematics</option>
+                                    <option value="Physics" {% if course.category == 'Physics' %}selected{% endif %}>Physics</option>
+                                    <option value="Chemistry" {% if course.category == 'Chemistry' %}selected{% endif %}>Chemistry</option>
+                                    <option value="Biology" {% if course.category == 'Biology' %}selected{% endif %}>Biology</option>
+                                    <option value="Engineering" {% if course.category == 'Engineering' %}selected{% endif %}>Engineering</option>
+                                    <option value="Business" {% if course.category == 'Business' %}selected{% endif %}>Business</option>
+                                    <option value="Literature" {% if course.category == 'Literature' %}selected{% endif %}>Literature</option>
+                                    <option value="History" {% if course.category == 'History' %}selected{% endif %}>History</option>
+                                    <option value="Art" {% if course.category == 'Art' %}selected{% endif %}>Art</option>
+                                    <option value="Other" {% if course.category == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                                <div class="field-icon">
+                                    <i class="fas fa-tag"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="description" class="field-label">Course Description</label>
+                            <div class="field-input">
+                                <textarea id="description" 
+                                          name="description" 
+                                          rows="4"
+                                          placeholder="Describe what students will learn in this course..."
+                                          class="textarea-enhanced">{{ course.description or '' }}</textarea>
+                                <div class="field-icon textarea-icon">
+                                    <i class="fas fa-align-left"></i>
+                                </div>
+                            </div>
+                            <div class="field-help">
+                                <i class="fas fa-lightbulb"></i>
+                                A clear description helps students understand what to expect from your course
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enrollment Settings Section -->
+                <div class="form-section-card">
+                    <div class="section-header">
+                        <div class="section-icon success">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="section-title">
+                            <h3>Enrollment Settings</h3>
+                            <p>Control how students join your course</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-fields">
+                        <div class="form-field">
+                            <label for="enrollment_key" class="field-label">New Enrollment Key</label>
+                            <div class="field-input">
+                                <input type="text" 
+                                       id="enrollment_key" 
+                                       name="enrollment_key" 
+                                       minlength="6"
+                                       placeholder="Leave empty to keep current key"
+                                       class="input-enhanced">
+                                <div class="field-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                            </div>
+                            <div class="field-help">
+                                <i class="fas fa-info-circle"></i>
+                                Only enter a new key if you want to change it (minimum 6 characters)
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="max_students" class="field-label">Maximum Students</label>
+                            <div class="field-input">
+                                <input type="number" 
+                                       id="max_students" 
+                                       name="max_students" 
+                                       min="1" 
+                                       max="500" 
+                                       value="{{ course.max_students or 50 }}"
+                                       placeholder="50"
+                                       class="input-enhanced">
+                                <div class="field-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="field-help">
+                                <i class="fas fa-chart-line"></i>
+                                Maximum number of students that can enroll in this course
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label for="start_date" class="field-label">Start Date</label>
+                                <div class="field-input">
+                                    <input type="date" 
+                                           id="start_date" 
+                                           name="start_date" 
+                                           value="{{ course.start_date or '' }}"
+                                           class="input-enhanced">
+                                    <div class="field-icon">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-field">
+                                <label for="end_date" class="field-label">End Date</label>
+                                <div class="field-input">
+                                    <input type="date" 
+                                           id="end_date" 
+                                           name="end_date" 
+                                           value="{{ course.end_date or '' }}"
+                                           class="input-enhanced">
+                                    <div class="field-icon">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Course Content Section -->
+                <div class="form-section-card full-width">
+                    <div class="section-header">
+                        <div class="section-icon accent">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="section-title">
+                            <h3>Course Content</h3>
+                            <p>Outline and learning objectives</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-fields">
+                        <div class="form-field">
+                            <label for="syllabus" class="field-label">Syllabus</label>
+                            <div class="field-input">
+                                <textarea id="syllabus" 
+                                          name="syllabus" 
+                                          rows="8"
+                                          placeholder="Course outline, learning objectives, topics covered, assessment methods..."
+                                          class="textarea-enhanced syllabus-textarea">{{ course.syllabus or '' }}</textarea>
+                                <div class="field-icon textarea-icon">
+                                    <i class="fas fa-book-open"></i>
+                                </div>
+                            </div>
+                            <div class="field-help">
+                                <i class="fas fa-graduation-cap"></i>
+                                Provide a detailed course outline to help students understand the learning journey
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions-enhanced">
+                <div class="actions-content">
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-primary btn-save">
+                            <i class="fas fa-save"></i>
+                            <span>Update Course</span>
+                            <div class="btn-shine"></div>
+                        </button>
+                        <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </a>
+                    </div>
+                    <div class="action-help">
+                        <i class="fas fa-shield-alt"></i>
+                        All changes are saved securely
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+:root {
+    /* Background Colors */
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --bg-nav: #0D0D0D;
+    
+    /* Card/List Item Colors */
+    --card-base: #1C1C1E;
+    --card-hover: #2C2C2E;
+    --divider: #3A3A3C;
+    
+    /* Accent Colors */
+    --accent-primary: #0A84FF;
+    --accent-pressed: #006EDC;
+    --accent-secondary: #5E5CE6;
+    --accent-success: #30D158;
+    --accent-warning: #FF9F0A;
+    --accent-info: #64D2FF;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #EBEBF5;
+    --text-tertiary: #EBEBF5;
+    --text-quaternary: #3A3A3E;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    --gradient-success: linear-gradient(135deg, var(--accent-success) 0%, #1F8A4D 100%);
+    --gradient-warning: linear-gradient(135deg, var(--accent-warning) 0%, #D35400 100%);
+    --gradient-accent: linear-gradient(135deg, #FF453A 0%, #FF9F0A 100%);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.4);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.6), 0 10px 10px -5px rgba(0,0,0,0.5);
+    --shadow-2xl: 0 25px 50px -12px rgba(0,0,0,0.8);
+    
+    /* Border Radius */
+    --border-radius: 12px;
+    --border-radius-lg: 16px;
+    --border-radius-xl: 20px;
+    
+    /* Transitions */
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    background: var(--bg-primary);
+}
+
+/* Enhanced Hero Section */
+.page-hero {
+    background: var(--gradient-primary);
+    border-radius: var(--border-radius-xl);
+    margin: 0 0 2.5rem;
+    color: var(--text-primary);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-2xl);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.hero-text {
+    flex: 1;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+}
+
+.breadcrumb-link:hover {
+    color: var(--text-primary);
+}
+
+.breadcrumb-separator {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.hero-text h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--text-primary);
+}
+
+.hero-text p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-ghost {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.btn-ghost:hover {
+    background: var(--text-primary);
+    color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    animation: float 15s infinite ease-in-out;
+}
+
+.shape-1 {
+    width: 120px;
+    height: 120px;
+    top: -40px;
+    right: 10%;
+    animation-delay: 0s;
+}
+
+.shape-2 {
+    width: 80px;
+    height: 80px;
+    bottom: -20px;
+    right: 20%;
+    animation-delay: 7s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-20px) rotate(120deg); }
+    66% { transform: translateY(10px) rotate(240deg); }
+}
+
+/* Enhanced Form Container */
+.form-container-enhanced {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.course-form-enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Course Header Card */
+.course-header-card {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--divider);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.course-header-card:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+    background: var(--card-hover);
+}
+
+.course-identity {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.course-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.course-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.course-code-display {
+    background: var(--gradient-primary);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: inline-block;
+    box-shadow: var(--shadow-sm);
+}
+
+.course-meta {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-indicator.active {
+    background: rgba(48, 209, 88, 0.1);
+    color: var(--accent-success);
+    border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.status-indicator.active i {
+    color: var(--accent-success);
+    font-size: 0.5rem;
+}
+
+/* Form Sections Grid */
+.form-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.form-section-card {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--divider);
+    transition: var(--transition);
+}
+
+.form-section-card:hover {
+    box-shadow: var(--shadow-xl);
+    background: var(--card-hover);
+}
+
+.form-section-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.section-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.section-icon.primary {
+    background: var(--gradient-primary);
+}
+
+.section-icon.success {
+    background: var(--gradient-success);
+}
+
+.section-icon.accent {
+    background: var(--gradient-accent);
+}
+
+.section-title h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.section-title p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+/* Form Fields */
+.form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.field-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.required {
+    color: var(--accent-primary);
+}
+
+.field-input {
+    position: relative;
+}
+
+.input-enhanced,
+.select-enhanced,
+.textarea-enhanced {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid var(--divider);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: var(--transition);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.input-enhanced::placeholder,
+.textarea-enhanced::placeholder {
+    color: var(--text-tertiary);
+}
+
+.select-enhanced {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239999A5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1rem;
+}
+
+.textarea-enhanced {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.5;
+}
+
+.syllabus-textarea {
+    min-height: 200px;
+}
+
+.input-enhanced:focus,
+.select-enhanced:focus,
+.textarea-enhanced:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+    transform: translateY(-1px);
+    background: var(--bg-secondary);
+}
+
+.field-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    transition: var(--transition);
+}
+
+.textarea-icon {
+    top: 1.5rem;
+    transform: none;
+}
+
+.input-enhanced:focus + .field-icon,
+.select-enhanced:focus + .field-icon,
+.textarea-enhanced:focus + .field-icon {
+    color: var(--accent-primary);
+}
+
+.field-help {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.field-help i {
+    color: var(--accent-info);
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Form Actions */
+.form-actions-enhanced {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--divider);
+    margin-top: 1rem;
+}
+
+.actions-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--text-primary);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-save {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s;
+}
+
+.btn-save:hover .btn-shine {
+    left: 100%;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 2px solid var(--divider);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
+    transform: translateY(-2px);
+}
+
+.action-help {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.action-help i {
+    color: var(--accent-success);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .form-sections-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 0 1rem 2rem;
+    }
+    
+    .hero-content {
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem 1.5rem;
+    }
+    
+    .course-header-card {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .course-identity {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .course-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-content {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-text h1 {
+        font-size: 1.75rem;
+    }
+    
+    .form-section-card {
+        padding: 1.5rem;
+    }
+    
+    .input-enhanced,
+    .select-enhanced,
+    .textarea-enhanced {
+        padding: 0.875rem 0.875rem 0.875rem 2.5rem;
+    }
+    
+    .field-icon {
+        left: 0.875rem;
+    }
+}
+
+/* Character Counter */
+.char-counter {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    margin-top: 0.25rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Date validation
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+    
+    if (startDate) {
+        startDate.addEventListener('change', function() {
+            if (endDate) {
+                endDate.min = this.value;
+            }
+        });
+    }
+    
+    if (endDate) {
+        endDate.addEventListener('change', function() {
+            if (startDate.value && this.value < startDate.value) {
+                alert('End date cannot be before start date');
+                this.value = '';
+            }
+        });
+    }
+    
+    // Add character counters for text areas
+    const descriptionTextarea = document.getElementById('description');
+    const syllabusTextarea = document.getElementById('syllabus');
+    
+    function createCounter(textarea, maxLength = 2000) {
+        const counter = document.createElement('div');
+        counter.className = 'char-counter';
+        
+        textarea.parentNode.appendChild(counter);
+        
+        function updateCounter() {
+            const length = textarea.value.length;
+            counter.textContent = `${length}/${maxLength} characters`;
+            
+            if (length > maxLength * 0.9) {
+                counter.style.color = 'var(--accent-warning)';
+            } else {
+                counter.style.color = 'var(--text-tertiary)';
+            }
+        }
+        
+        textarea.addEventListener('input', updateCounter);
+        updateCounter();
+    }
+    
+    if (descriptionTextarea) {
+        createCounter(descriptionTextarea, 500);
+    }
+    
+    if (syllabusTextarea) {
+        createCounter(syllabusTextarea, 2000);
+    }
+    
+    // Add form submission enhancement
+    const form = document.querySelector('.course-form-enhanced');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving Changes...</span>';
+            }
+        });
+    }
+    
+    // Add input validation styling
+    const inputs = document.querySelectorAll('.input-enhanced, .select-enhanced, .textarea-enhanced');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.checkValidity()) {
+                this.style.borderColor = 'var(--accent-success)';
+            } else {
+                this.style.borderColor = 'var(--accent-primary)';
+            }
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.value) {
+                this.style.borderColor = 'var(--divider)';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

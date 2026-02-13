@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Direct Messages - LearnNest{% endblock %}
+
+{% block content %}
+<div style="display: flex; height: 100vh; background: var(--bg-primary);">
+    <!-- Users List Sidebar -->
+    <div style="width: 300px; background: var(--bg-secondary); border-right: 1px solid var(--divider); overflow-y: auto;">
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--divider);">
+            <h3 style="margin: 0; color: var(--text-primary); font-size: 1.2rem;">
+                <i class="fas fa-envelope"></i> Direct Messages
+            </h3>
+        </div>
+        
+        <div id="users-list" style="padding: 0.5rem;">
+            {% if users %}
+                {% for user in users %}
+                <div class="user-item" data-user-id="{{ user.id }}" onclick="selectUser({{ user.id }}, '{{ user.full_name }}')" 
+                     style="padding: 1rem; cursor: pointer; border-bottom: 1px solid var(--divider); transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;"
+                     onmouseover="this.style.background='var(--card-hover)'" onmouseout="this.style.background='transparent'">
+                    <div>
+                        <div style="color: var(--text-primary); font-weight: 500;">{{ user.full_name }}</div>
+                        <div style="color: var(--text-tertiary); font-size: 0.85rem;">{{ user.role.upper() }}</div>
+                    </div>
+                    <span class="unread-badge" style="background: var(--accent-primary); color: white; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; display: none;">0</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="padding: 2rem 1rem; text-align: center; color: var(--text-tertiary);">
+                    <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                    No users available for direct messaging
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Chat Area -->
+    <div style="flex: 1; display: flex; flex-direction: column;">
+        <!-- Header -->
+        <div style="background: var(--bg-secondary); border-bottom: 1px solid var(--divider); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 id="chat-header" style="margin: 0; color: var(--text-primary);">Select a user to chat</h2>
+                <div id="user-status" style="color: var(--text-tertiary); font-size: 0.9rem; margin-top: 0.25rem;"></div>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; border: 1px solid var(--btn-secondary-border);">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        
+        <!-- Messages Container -->
+        <div id="messages-container" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="text-align: center; color: var(--text-tertiary); margin: auto;">
+                <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; display: block;"></i>
+                <p style="font-size: 1.1rem;">Select a user to start chatting</p>
+            </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div style="background: var(--bg-secondary); border-top: 1px solid var(--divider); padding: 1.5rem;">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" id="message-input" placeholder="Type your message..." 
+                       style="flex: 1; padding: 1rem; border: 1px solid var(--divider); border-radius: 8px; font-size: 1rem; background: var(--bg-tertiary); color: var(--text-primary);"
+                       onkeypress="if(event.key === 'Enter') sendDirectMessage();" disabled>
+                <button id="send-btn" onclick="sendDirectMessage()" style="background: var(--accent-primary); color: white; padding: 1rem 2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.5; pointer-events: none;"
+                        onmouseover="if(!this.disabled) { this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-hover)'; }"
+                        onmouseout="if(!this.disabled) { this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow)'; }">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Socket.IO safely
+    let socket = null;
+    if (typeof io !== 'undefined') {
+        socket = io();
+    }
+    
+    const currentUserId = {{ current_user.id }};
+    const currentUserName = "{{ current_user.full_name }}";
+    let selectedUserId = null;
+    
+    if (socket) {
+        socket.on('connect', function() {
+            console.log('✅ Connected to direct messages');
+            socket.emit('join_direct_chat', {recipient_id: currentUserId});
+        });
+    }
+    
+    function selectUser(userId, userName) {
+        selectedUserId = userId;
+        const header = document.getElementById('chat-header');
+        const input = document.getElementById('message-input');
+        const btn = document.getElementById('send-btn');
+        const container = document.getElementById('messages-container');
+        const status = document.getElementById('user-status');
+        
+        if (header) header.textContent = `Chat with ${userName}`;
+        if (input) input.disabled = false;
+        if (btn) {
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }
+        if (container) container.innerHTML = '';
+        if (status) status.textContent = 'Online now';
+        
+        // Highlight selected user
+        document.querySelectorAll('.user-item').forEach(item => {
+            item.style.background = 'transparent';
+        });
+        const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+        if (userItem) userItem.style.background = 'var(--card-hover)';
+        
+        // Load existing messages
+        loadMessages(userId);
+        
+        // Join room
+        if (socket) socket.emit('join_direct_chat', {recipient_id: userId});
+    }
+    
+    function loadMessages(userId) {
+        fetch(`/api/direct-messages/${userId}`)
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to load messages');
+                return r.json();
+            })
+            .then(data => {
+                if (data.messages) {
+                    const container = document.getElementById('messages-container');
+                    if (container) {
+                        container.innerHTML = '';
+                        data.messages.forEach(msg => {
+                            appendMessage(msg, userId);
+                        });
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+            })
+            .catch(err => console.error('❌ Error loading messages:', err));
+    }
+    
+    function sendDirectMessage() {
+        if (!selectedUserId || !socket) return;
+        
+        const input = document.getElementById('message-input');
+        if (!input) return;
+        
+        const message = input.value.trim();
+        if (!message) return;
+        
+        socket.emit('send_direct_message', {
+            recipient_id: selectedUserId,
+            message: message
+        });
+        
+        input.value = '';
+        input.focus();
+    }
+
+    // Send typing indicator - attach listener safely
+    window.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('message-input');
+        if (input && socket) {
+            input.addEventListener('keydown', function(e) {
+                if (selectedUserId && socket) {
+                    socket.emit('user_typing', {room: `direct_${Math.min(currentUserId, selectedUserId)}_${Math.max(currentUserId, selectedUserId)}`});
+                }
+            });
+        }
+    });
+    
+    if (socket) {
+        socket.on('new_direct_message', function(data) {
+            if (data.sender_id === selectedUserId || data.recipient_id === selectedUserId) {
+                appendMessage(data, selectedUserId);
+            }
+        });
+
+        socket.on('user_typing', function(data) {
+            if (data.user_id !== currentUserId && data.user_id === selectedUserId) {
+                showTypingIndicator(data.user_name);
+            }
+        });
+    }
+
+    function showTypingIndicator(userName) {
+        const container = document.getElementById('messages-container');
+        const existing = container.querySelector('[data-typing]');
+        if (existing) existing.remove();
+        
+        const div = document.createElement('div');
+        div.setAttribute('data-typing', 'true');
+        div.innerHTML = `<div style="color: var(--text-tertiary); font-size: 0.9rem;"><i>${userName} is typing...</i></div>`;
+        container.appendChild(div);
+        
+        setTimeout(() => div.remove(), 3000);
+    }
+    
+    function appendMessage(msg, otherUserId) {
+        const container = document.getElementById('messages-container');
+        const isOwnMessage = msg.sender_id === currentUserId;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = isOwnMessage ? 'text-align: right;' : '';
+        messageDiv.setAttribute('data-message-id', msg.id);
+        
+        const bubbleColor = isOwnMessage ? 'var(--accent-primary)' : 'var(--bg-tertiary)';
+        const textColor = isOwnMessage ? 'white' : 'var(--text-primary)';
+        
+        messageDiv.innerHTML = `
+            <div style="display: inline-block; max-width: 70%; text-align: left; padding: 1rem 1.2rem; background: ${bubbleColor}; color: ${textColor}; border-radius: 12px; box-shadow: var(--shadow); position: relative; group: hover;">
+                <p style="margin: 0; line-height: 1.5; word-wrap: break-word;">${escapeHtml(msg.message)}</p>
+                <small style="color: ${isOwnMessage ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)'}; font-size: 0.75rem; margin-top: 0.5rem; display: block;">${new Date(msg.created_at).toLocaleTimeString()} ${isOwnMessage ? '✓✓' : ''}</small>
+                ${isOwnMessage ? `
+                    <div style="position: absolute; right: 0; top: -2rem; display: flex; gap: 0.5rem; opacity: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                        <button onclick="addEmoji(${msg.id})" style="background: #34C759; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">😊</button>
+                        <button onclick="editMessage(${msg.id})" style="background: var(--accent-primary); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteMessage(${msg.id})" style="background: #FF453A; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function addEmoji(msgId) {
+        const emoji = prompt('Add emoji (e.g., 👍, ❤️):');
+        if (emoji) {
+            fetch(`/api/messages/${msgId}/react`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({emoji})
+            });
+        }
+    }
+    
+    function deleteMessage(messageId) {
+        if (confirm('Delete this message?')) {
+            fetch(`/api/direct-messages/${messageId}`, {method: 'DELETE'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector(`[data-message-id="${messageId}"]`).remove();
+                    }
+                });
+        }
+    }
+    
+    function editMessage(messageId) {
+        const newMsg = prompt('Edit message:');
+        if (newMsg && newMsg.trim()) {
+            fetch(`/api/direct-messages/${messageId}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: newMsg.trim()})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadMessages(selectedUserId);
+                }
+            });
+        }
+    }
+    
+    function escapeHtml(text) {
+        const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+
+<style>
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --divider: #3A3A3C;
+    --accent-primary: #0A84FF;
+    --text-primary: #FFFFFF;
+    --text-tertiary: #56565E;
+    --shadow: 0 4px 20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 6px 25px rgba(0,0,0,0.7);
+    --btn-secondary-border: #3A3A3C;
+}
+
+body { background: var(--bg-primary); }
+
+#users-list::-webkit-scrollbar, #messages-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#users-list::-webkit-scrollbar-track, #messages-container::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+#users-list::-webkit-scrollbar-thumb, #messages-container::-webkit-scrollbar-thumb {
+    background: var(--divider);
+    border-radius: 4px;
+}
+
+#message-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    div[style*="width: 300px"] {
+        width: 200px !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Forum - {{ forum.title }} - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="breadcrumb-link">
+                    <i class="fas fa-comments"></i> Discussions
+                </a>
+                <i class="fas fa-chevron-right"></i>
+                <span class="breadcrumb-current">Edit Forum</span>
+            </div>
+            <h1><i class="fas fa-edit"></i> Edit Forum</h1>
+            <p>{{ course.title }} ({{ course.course_code }})</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Discussions
+            </a>
+        </div>
+    </div>
+
+    <div class="form-grid">
+        <!-- Edit Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-edit"></i> Forum Details
+                </h3>
+            </div>
+            <div class="card-content">
+                <form method="POST" action="{{ url_for('instructor_update_forum', course_id=course.id, forum_id=forum.id) }}" class="form">
+                    <div class="form-group">
+                        <label for="title">Forum Title *</label>
+                        <input type="text" id="title" name="title" required 
+                               value="{{ forum.title }}"
+                               placeholder="e.g., General Discussion">
+                        <small class="form-help">Choose a clear, descriptive title for your forum</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" 
+                                  placeholder="Brief description of what this forum is for...">{{ forum.description or '' }}</textarea>
+                        <small class="form-help">Optional description to help students understand the forum's purpose</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Forum
+                        </button>
+                        <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Forum Information -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i> Forum Information
+                </h3>
+            </div>
+            <div class="card-content">
+                <div class="info-list">
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-calendar"></i>
+                            Created Date
+                        </div>
+                        <div class="info-value">
+                            {{ forum.created_at[:19] if forum.created_at else 'N/A' }}
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-comment-dots"></i>
+                            Current Status
+                        </div>
+                        <div class="info-value">
+                            {% if forum.is_active %}
+                                <span class="status-badge active">
+                                    <i class="fas fa-check-circle"></i> Active
+                                </span>
+                            {% else %}
+                                <span class="status-badge inactive">
+                                    <i class="fas fa-pause-circle"></i> Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-link"></i>
+                            Quick Actions
+                        </div>
+                        <div class="info-value">
+                            <a href="{{ url_for('instructor_forum_topics', course_id=course.id, forum_id=forum.id) }}" class="btn btn-sm btn-outline">
+                                <i class="fas fa-eye"></i> View Topics
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card danger-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-exclamation-triangle"></i> Danger Zone
+                </h3>
+            </div>
+            <div class="card-content">
+                <div class="danger-info">
+                    <h4>Delete Forum</h4>
+                    <p>Permanently delete this forum and all its topics and replies. This action cannot be undone.</p>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                        <i class="fas fa-trash"></i> Delete Forum
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content danger-modal">
+        <div class="modal-header">
+            <h4><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h4>
+            <button class="close-btn" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="danger-warning">
+                <i class="fas fa-exclamation-triangle fa-3x"></i>
+                <h3>Are you sure?</h3>
+                <p>You are about to delete the forum "<strong>{{ forum.title }}</strong>" and all its content.</p>
+                <div class="warning-list">
+                    <div class="warning-item">
+                        <i class="fas fa-times-circle"></i>
+                        All topics in this forum will be deleted
+                    </div>
+                    <div class="warning-item">
+                        <i class="fas fa-times-circle"></i>
+                        All replies will be permanently lost
+                    </div>
+                    <div class="warning-item">
+                        <i class="fas fa-times-circle"></i>
+                        This action cannot be undone
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <form method="POST" action="{{ url_for('instructor_delete_forum', course_id=course.id, forum_id=forum.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Yes, Delete Forum
+                </button>
+            </form>
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.breadcrumb-link:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    color: white;
+    font-weight: 600;
+}
+
+.breadcrumb i.fas.fa-chevron-right {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.875rem;
+}
+
+.info-value {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.status-badge.inactive {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--secondary-color);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #333;
+}
+
+.btn-outline:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.danger-card {
+    border-left: 4px solid var(--error-color);
+}
+
+.danger-info h4 {
+    color: var(--error-color);
+    margin: 0 0 0.5rem 0;
+}
+
+.danger-info p {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+    margin: 5% auto;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+}
+
+.danger-modal {
+    border: 2px solid var(--error-color);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: var(--error-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.danger-warning {
+    text-align: center;
+}
+
+.danger-warning i {
+    color: var(--error-color);
+    margin-bottom: 1rem;
+}
+
+.danger-warning h3 {
+    color: var(--error-color);
+    margin: 0 0 1rem 0;
+}
+
+.danger-warning p {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.warning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+    margin-top: 1rem;
+}
+
+.warning-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--error-color);
+    font-size: 0.875rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    padding: 0 2rem 2rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function confirmDelete() {
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Forum Topics - {{ forum.title }} - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-list"></i> {{ forum.title }}</h1>
+            <p>{{ course.title }} ({{ course.course_code }})</p>
+            {% if forum.description %}
+                <p class="text-secondary">{{ forum.description }}</p>
+            {% endif %}
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-success" onclick="createTopicModal('{{ forum.id }}', '{{ forum.title }}')">
+                <i class="fas fa-plus"></i> New Topic
+            </button>
+            <a href="{{ url_for('instructor_edit_forum', course_id=course.id, forum_id=forum.id) }}" class="btn btn-secondary">
+                <i class="fas fa-edit"></i> Edit Forum
+            </a>
+            <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Forums
+            </a>
+        </div>
+    </div>
+
+    <!-- Forum Stats -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-comment-dots"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ topics|length }}</h3>
+                <p>Discussion Topics</p>
+            </div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-thumbtack"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ topics|selectattr('is_pinned')|list|length }}</h3>
+                <p>Pinned Topics</p>
+            </div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-reply"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ topics|sum(attribute='reply_count') }}</h3>
+                <p>Total Replies</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-comments"></i> Discussion Topics
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if topics %}
+                <div class="topics-list">
+                    {% for topic in topics %}
+                        <div class="topic-card {{ 'pinned' if topic.is_pinned else '' }}">
+                            <div class="topic-header">
+                                <div class="topic-info">
+                                    <h4>
+                                        {% if topic.is_pinned %}
+                                            <i class="fas fa-thumbtack text-warning"></i>
+                                        {% endif %}
+                                        <a href="{{ url_for('instructor_topic_detail', course_id=course.id, forum_id=forum.id, topic_id=topic.id) }}" class="topic-link">
+                                            {{ topic.title }}
+                                        </a>
+                                    </h4>
+                                    <p class="topic-meta">
+                                        by <strong>{{ topic.author_name }}</strong>
+                                        <span class="topic-date">
+                                            <i class="fas fa-calendar"></i>
+                                            {{ topic.created_at[:19] }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="topic-stats">
+                                    <div class="stat-item">
+                                        <i class="fas fa-reply"></i>
+                                        <span>{{ topic.reply_count }}</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-eye"></i>
+                                        <span>{{ topic.view_count or 0 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="topic-content-preview">
+                                {{ topic.content[:200] }}{% if topic.content|length > 200 %}...{% endif %}
+                            </div>
+                            <div class="topic-actions">
+                                <a href="{{ url_for('instructor_topic_detail', course_id=course.id, forum_id=forum.id, topic_id=topic.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> View Full
+                                </a>
+                                {% if topic.last_activity %}
+                                    <span class="last-activity">
+                                        <i class="fas fa-clock"></i>
+                                        Last activity: {{ topic.last_activity[:19] }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comment-dots fa-3x"></i>
+                    <h3>No Topics Yet</h3>
+                    <p>Start the discussion by creating the first topic in this forum.</p>
+                    <button class="btn btn-primary" onclick="createTopicModal('{{ forum.id }}', '{{ forum.title }}')">
+                        <i class="fas fa-plus"></i> Create First Topic
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Topic Modal -->
+<div id="createTopicModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4><i class="fas fa-plus"></i> Create New Topic</h4>
+            <button class="close-btn" onclick="toggleCreateTopicModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('instructor_create_topic', course_id=course.id) }}" class="modal-form">
+            <input type="hidden" id="topic_forum_id" name="forum_id" value="{{ forum.id }}">
+            <div class="form-group">
+                <label>Forum: <span class="text-primary">{{ forum.title }}</span></label>
+            </div>
+            <div class="form-group">
+                <label for="topic_title">Topic Title *</label>
+                <input type="text" id="topic_title" name="title" required 
+                       placeholder="e.g., Welcome to the Course">
+            </div>
+            <div class="form-group">
+                <label for="topic_content">Content *</label>
+                <textarea id="topic_content" name="content" rows="5" required
+                          placeholder="Write your topic content here..."></textarea>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" name="is_pinned" style="width: auto;">
+                    Pin this topic (appears at the top)
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Topic
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="toggleCreateTopicModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.topics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.topic-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border-radius: 15px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+}
+
+.topic-card.pinned {
+    border-left: 4px solid var(--warning-color);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+}
+
+.topic-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.topic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.topic-info h4 {
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.topic-link {
+    color: #333;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.topic-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.topic-meta {
+    color: #666;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.topic-date {
+    margin-left: 1rem;
+}
+
+.topic-stats {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.stat-item i {
+    color: var(--primary-color);
+}
+
+.topic-content-preview {
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.5);
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.topic-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.last-activity {
+    color: #666;
+    font-size: 0.75rem;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+    margin: 5% auto;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: #333;
+}
+
+.modal-form {
+    padding: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+</style>
+
+<script>
+function createTopicModal(forumId, forumTitle) {
+    document.getElementById('topic_forum_id').value = forumId;
+    toggleCreateTopicModal();
+}
+
+function toggleCreateTopicModal() {
+    const modal = document.getElementById('createTopicModal');
+    modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('createTopicModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

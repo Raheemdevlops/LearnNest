@@ -1,0 +1,962 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Courses - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Browse Courses</h1>
+            <p>Discover and enroll in courses using course codes and enrollment keys.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('student_my_enrollments') }}" class="btn btn-secondary">
+                My Enrollments
+            </a>
+        </div>
+    </div>
+    
+    <!-- Quick Enroll Form -->
+    <div class="quick-enroll-section">
+        <div class="enroll-card">
+            <h3>Quick Enrollment</h3>
+            <p>Have a course code and enrollment key? Enroll directly here!</p>
+            
+            <form method="POST" action="{{ url_for('student_enroll') }}" class="enroll-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="course_code">Course Code</label>
+                        <input type="text" 
+                               id="course_code" 
+                               name="course_code" 
+                               required
+                               placeholder="e.g., CS101, MATH201"
+                               pattern="[A-Z0-9]+"
+                               title="Course code should contain only uppercase letters and numbers">
+                    </div>
+                    <div class="form-group">
+                        <label for="enrollment_key">Enrollment Key</label>
+                        <input type="password" 
+                               id="enrollment_key" 
+                               name="enrollment_key" 
+                               required
+                               placeholder="Enter enrollment key">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Enroll Now
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if my_enrollments %}
+        <!-- My Enrollment Status -->
+        <div class="section">
+            <h2>My Enrollment Status</h2>
+            <div class="enrollments-status">
+                {% for enrollment in my_enrollments[:3] %}
+                    <div class="enrollment-status-item {{ enrollment.status }}">
+                        <div class="course-info">
+                            <h4>{{ enrollment.course_title }}</h4>
+                            <span class="course-code">{{ enrollment.course_code }}</span>
+                        </div>
+                        <div class="enrollment-info">
+                            <span class="instructor">{{ enrollment.instructor_name }}</span>
+                            <span class="status-badge {{ enrollment.status }}">
+                                {% if enrollment.status == 'pending' %}
+                                    ⏳ Pending Approval
+                                {% elif enrollment.status == 'approved' %}
+                                    ✅ Approved
+                                {% elif enrollment.status == 'rejected' %}
+                                    ❌ Rejected
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                {% if my_enrollments|length > 3 %}
+                    <div class="view-all-enrollments">
+                        <a href="{{ url_for('student_my_enrollments') }}" class="btn btn-secondary">
+                            View All {{ my_enrollments|length }} Enrollments
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Available Courses -->
+    <div class="section">
+        <h2>Available Courses</h2>
+        {% if available_courses %}
+            <div class="courses-grid">
+                {% for course in available_courses %}
+                    <div class="course-card">
+                        <div class="card-header">
+                            <div class="course-badge">
+                                <span class="course-code">{{ course.course_code }}</span>
+                                <div class="enrollment-count">
+                                    👥 {{ course.enrollment_count }}
+                                </div>
+                            </div>
+                            <div class="course-category">
+                                <span class="category-badge">{{ course.category or "General" }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h3 class="course-title">{{ course.title }}</h3>
+                            
+                            <div class="instructor-info">
+                                👨‍🏫 
+                                <span>{{ course.instructor_name }}</span>
+                            </div>
+                            
+                            {% if course.description %}
+                                <p class="course-description">
+                                    {{ course.description[:150] }}{% if course.description|length > 150 %}...{% endif %}
+                                </p>
+                            {% endif %}
+                            
+                            <div class="course-meta">
+                                {% if course.start_date %}
+                                    <div class="meta-item">
+                                        📅
+                                        <span>Starts {{ course.start_date }}</span>
+                                    </div>
+                                {% endif %}
+                                <div class="meta-item">
+                                    🎓
+                                    <span>Max {{ course.max_students }} students</span>
+                                </div>
+                                {% if course.duration %}
+                                    <div class="meta-item">
+                                        ⏰
+                                        <span>{{ course.duration }} weeks</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <button type="button" 
+                                    class="btn btn-enroll" 
+                                    onclick="enrollInCourse('{{ course.course_code }}', '{{ course.title }}')">
+                                🔑 Enroll Now
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <span>🎓</span>
+                <h3>No Available Courses</h3>
+                <p>There are no courses available for enrollment at this time, or you are already enrolled in all available courses.</p>
+                {% if my_enrollments %}
+                    <a href="{{ url_for('student_my_enrollments') }}" class="btn btn-primary">
+                        View My Enrollments
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Enrollment Modal -->
+<div id="enrollmentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Enroll in Course</h3>
+            <span class="close" onclick="closeEnrollmentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="course-info-display">
+                <h4 id="modalCourseTitle"></h4>
+                <span id="modalCourseCode"></span>
+            </div>
+            <form method="POST" action="{{ url_for('student_enroll') }}" id="modalEnrollForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" id="modalCourseCodeInput" name="course_code">
+                <div class="form-group">
+                    <label for="modalEnrollmentKey">Enrollment Key</label>
+                    <input type="password" 
+                           id="modalEnrollmentKey" 
+                           name="enrollment_key" 
+                           required
+                           placeholder="Enter the enrollment key provided by your instructor"
+                           class="form-input-lg">
+                    <small class="form-help">
+                        Get the enrollment key from your instructor to complete enrollment.
+                    </small>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Confirm Enrollment
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEnrollmentModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    /* Background Colors */
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --bg-nav: #0D0D0D;
+    --bg-tab: #1C1C1E;
+    
+    /* Card/List Item Colors */
+    --card-base: #1C1C1E;
+    --card-hover: #2C2C2E;
+    --divider: #3A3A3C;
+    
+    /* Accent Colors */
+    --accent-primary: #0A84FF;
+    --accent-pressed: #006EDC;
+    --accent-destructive: #FF453A;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #9999A5;
+    --text-tertiary: #56565E;
+    --text-quaternary: #3A3A3E;
+    
+    /* Tab Bar Colors */
+    --tab-inactive: #8E8E93;
+    --tab-active: #0A84FF;
+    
+    /* Button Colors */
+    --btn-primary-bg: #0A84FF;
+    --btn-primary-hover: #006EDC;
+    --btn-primary-disabled-bg: rgba(10, 132, 255, 0.3);
+    --btn-primary-disabled-text: rgba(255, 255, 255, 0.3);
+    --btn-secondary-border: #3A3A3C;
+    --btn-secondary-hover: #2C2C2E;
+    
+    /* Shadows */
+    --shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg-primary);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Base Layout */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 2rem;
+}
+
+.header-content h1 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.header-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    max-width: 600px;
+}
+
+.header-actions {
+    flex-shrink: 0;
+}
+
+/* Quick Enroll Section */
+.quick-enroll-section {
+    margin: 2rem 0 3rem 0;
+}
+
+.enroll-card {
+    background: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--divider);
+}
+
+.enroll-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.enroll-card p {
+    margin-bottom: 2rem;
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+
+.enroll-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1.5rem;
+    align-items: end;
+}
+
+.enroll-form .form-group {
+    margin-bottom: 0;
+}
+
+.enroll-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.enroll-form input {
+    width: 100%;
+    padding: 0.875rem;
+    border: 1px solid var(--divider);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.enroll-form input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+.enroll-form input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Sections */
+.section {
+    margin-bottom: 3rem;
+}
+
+.section h2 {
+    margin: 0 0 1.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+/* Enhanced Course Cards */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.course-card {
+    background: var(--bg-secondary);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--divider);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.course-card:hover {
+    box-shadow: 0 6px 25px rgba(0,0,0,0.7);
+    background: var(--card-hover);
+    transform: translateY(-2px);
+}
+
+.course-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent-primary);
+}
+
+.card-header {
+    padding: 1.5rem 1.5rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.course-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.course-code {
+    background: var(--accent-primary);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: inline-block;
+    width: fit-content;
+}
+
+.enrollment-count {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.category-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.card-body {
+    padding: 0 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.course-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    line-height: 1.3;
+    font-weight: 600;
+}
+
+.instructor-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.course-description {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    flex: 1;
+}
+
+.course-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.card-footer {
+    padding: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    margin-top: auto;
+}
+
+.btn-enroll {
+    flex: 2;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-enroll:hover {
+    background: var(--accent-pressed);
+}
+
+/* Enrollment Status */
+.enrollments-status {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.enrollment-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--divider);
+    border-left: 4px solid var(--accent-primary);
+    transition: background-color 0.2s;
+}
+
+.enrollment-status-item:hover {
+    background: var(--card-hover);
+}
+
+.enrollment-status-item.pending {
+    border-left-color: var(--warning);
+}
+
+.enrollment-status-item.approved {
+    border-left-color: var(--success);
+}
+
+.enrollment-status-item.rejected {
+    border-left-color: var(--accent-destructive);
+}
+
+.course-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.enrollment-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.instructor {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.status-badge.pending {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.status-badge.approved {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.status-badge.rejected {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.view-all-enrollments {
+    text-align: center;
+    padding: 1.5rem 0 0.5rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--divider);
+}
+
+.empty-state span {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    display: block;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    justify-content: center;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
+}
+
+.btn-primary {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-pressed);
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: white;
+    border: 1px solid var(--btn-secondary-border);
+}
+
+.btn-secondary:hover {
+    background-color: var(--btn-secondary-hover);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--divider);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--accent-primary);
+    color: white;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.close {
+    font-size: 1.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+
+.close:hover {
+    opacity: 1;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.course-info-display {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--divider);
+}
+
+.course-info-display h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+}
+
+.course-info-display span {
+    background: var(--accent-primary);
+    color: white;
+    padding: 0.375rem 1rem;
+    border-radius: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-input-lg {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border: 1px solid var(--divider);
+    border-radius: 0.5rem;
+    box-sizing: border-box;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input-lg:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+.form-input-lg::placeholder {
+    color: var(--text-tertiary);
+}
+
+.form-help {
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .page-container {
+        padding: 1.5rem;
+    }
+    
+    .courses-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .header-content h1 {
+        font-size: 1.75rem;
+    }
+    
+    .enroll-form .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .enrollment-status-item {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .enrollment-info {
+        align-items: center;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .card-footer {
+        flex-direction: column;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .enroll-card {
+        padding: 1.5rem;
+    }
+    
+    .enroll-card h3 {
+        font-size: 1.25rem;
+    }
+    
+    .section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .course-card {
+        padding: 0;
+    }
+    
+    .modal-header {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .modal-body {
+        padding: 1.25rem;
+    }
+}
+
+/* Auto-uppercase course code */
+#course_code {
+    text-transform: uppercase;
+}
+</style>
+
+<script>
+// Auto-uppercase course code
+document.getElementById('course_code').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+function enrollInCourse(courseCode, courseTitle) {
+    document.getElementById('modalCourseTitle').textContent = courseTitle;
+    document.getElementById('modalCourseCode').textContent = courseCode;
+    document.getElementById('modalCourseCodeInput').value = courseCode;
+    document.getElementById('modalEnrollmentKey').value = '';
+    document.getElementById('enrollmentModal').style.display = 'block';
+    document.getElementById('modalEnrollmentKey').focus();
+}
+
+function closeEnrollmentModal() {
+    document.getElementById('enrollmentModal').style.display = 'none';
+}
+
+function viewCourseDetails(courseId) {
+    // Implement course details view
+    alert('Course details view coming soon!');
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('enrollmentModal');
+    if (event.target === modal) {
+        closeEnrollmentModal();
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeEnrollmentModal();
+    }
+});
+</script>
+{% endblock %}

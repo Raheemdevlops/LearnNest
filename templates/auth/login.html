@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Login - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h1>Welcome Back</h1>
+                <p>Sign in to your LearnNest account</p>
+            </div>
+            
+            <form method="POST" action="{{ url_for('login') }}" class="login-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i>
+                        Email Address
+                    </label>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="Enter your email" autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Enter your password" autocomplete="current-password">
+                </div>
+                
+                <div class="form-group remember-me">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember">
+                        <span class="checkmark"></span>
+                        Remember me
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>Don't have an account? 
+                    <a href="{{ url_for('register') }}" class="register-link">Sign up here</a>
+                </p>
+                
+                <div class="demo-accounts">
+                    <h4>Demo Accounts (Click to Auto-Fill):</h4>
+                    <div class="demo-list">
+                        <div class="demo-item clickable-demo" onclick="fillDemoCredentials('admin@learnnest.com', 'admin123')">
+                            <i class="fas fa-user-shield"></i>
+                            <strong>Admin:</strong> admin@learnnest.com / admin123
+                        </div>
+                        <div class="demo-item clickable-demo" onclick="fillDemoCredentials('cypherandcolearnnest@gmail.com', 'teacher123')">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <strong>Teacher:</strong> cypherandcolearnnest@gmail.com / teacher123
+                        </div>
+                        <div class="demo-item clickable-demo" onclick="fillDemoCredentials('xyz@gmail.com', 'password')">
+                            <i class="fas fa-user-graduate"></i>
+                            <strong>Student:</strong> xyz@gmail.com / password
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* iOS Dark Theme - Login Page */
+:root {
+    --black: #000000;
+    --white: #ffffff;
+    --gray-100: #1c1c1e;
+    --gray-200: #2c2c2e;
+    --gray-300: #3a3a3c;
+    --primary: #0a84ff;
+    --text-primary: #ffffff;
+    --text-secondary: #ebebf5;
+    --card-bg: #121212;
+    --border: #2c2c2e;
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.7);
+    --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.8);
+    --gradient-primary: linear-gradient(135deg, #0a84ff 0%, #0066cc 100%);
+    --radius: 8px;
+    --radius-lg: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    background: var(--black);
+    min-height: 100vh;
+    color: var(--text-primary);
+}
+
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--black);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 480px;
+}
+
+.login-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 3rem;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    box-shadow: 0 0 10px var(--primary);
+}
+
+.login-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.9);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: var(--shadow-lg);
+    transition: transform 0.3s ease;
+}
+
+.login-logo:hover {
+    transform: scale(1.05);
+}
+
+.login-logo i {
+    font-size: 2.5rem;
+    color: var(--white);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.login-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.5px;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.login-form {
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.form-group label i {
+    color: var(--primary);
+    width: 16px;
+    transition: color 0.3s ease;
+}
+
+.form-group:hover label i {
+    color: var(--primary);
+}
+
+.form-group input[type="email"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--gray-200);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.form-group input::placeholder {
+    color: var(--text-light);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+    background: var(--gray-300);
+    transform: translateY(-2px);
+}
+
+.remember-me {
+    margin-bottom: 2rem;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.3s ease;
+}
+
+.checkbox-label:hover {
+    color: var(--brown-600);
+}
+
+.checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkmark {
+    height: 20px;
+    width: 20px;
+    background: var(--white);
+    border: 2px solid var(--brown-300);
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.checkbox-label:hover .checkmark {
+    border-color: var(--brown-500);
+}
+
+.checkbox-label input:checked ~ .checkmark {
+    background: var(--gradient-primary);
+    border-color: var(--brown-500);
+}
+
+.checkbox-label input:checked ~ .checkmark:after {
+    content: "";
+    position: absolute;
+    display: block;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid var(--white);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.login-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--gradient-primary);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.login-btn:hover::before {
+    left: 100%;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(161, 128, 114, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.login-footer {
+    text-align: center;
+}
+
+.login-footer p {
+    color: var(--brown-500);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.register-link {
+    color: var(--brown-600);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.register-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--brown-600);
+    transition: width 0.3s ease;
+}
+
+.register-link:hover {
+    color: var(--brown-700);
+}
+
+.register-link:hover::after {
+    width: 100%;
+}
+
+.demo-accounts {
+    background: var(--gray-100);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.demo-accounts h4 {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.demo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.demo-item {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    background: var(--gray-200);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.demo-item:hover {
+    transform: translateX(4px);
+    border-color: var(--primary);
+    background: var(--gray-300);
+}
+
+.demo-item strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem;
+    }
+    
+    .login-card {
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .login-logo {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .login-logo i {
+        font-size: 2rem;
+    }
+    
+    .demo-list {
+        gap: 0.5rem;
+    }
+    
+    .demo-item {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 1.5rem 1rem;
+        border-radius: 16px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.6rem;
+    }
+    
+    .login-header p {
+        font-size: 1rem;
+    }
+    
+    .form-group input[type="email"],
+    .form-group input[type="password"] {
+        padding: 0.875rem 1rem;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.clickable-demo {
+    cursor: pointer;
+    position: relative;
+}
+
+.clickable-demo i {
+    margin-right: 0.5rem;
+    color: var(--primary);
+}
+
+.clickable-demo::after {
+    content: 'Click to auto-fill';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.clickable-demo:hover::after {
+    opacity: 1;
+}
+
+.clickable-demo:active {
+    transform: scale(0.98);
+}
+</style>
+
+<script>
+function fillDemoCredentials(email, password) {
+    // Fill the email and password fields
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = password;
+    
+    // Add visual feedback
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    
+    // Trigger focus effect
+    emailField.focus();
+    setTimeout(() => passwordField.focus(), 100);
+    
+    // Show success notification
+    showNotification('✓ Demo credentials filled! Click "Sign In" to login.');
+}
+
+function showNotification(message) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #0a84ff 0%, #0066cc 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        animation: slideInRight 0.4s ease-out;
+        font-size: 0.95rem;
+        font-weight: 500;
+    `;
+    notification.textContent = message;
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.4s ease-out';
+        setTimeout(() => notification.remove(), 400);
+    }, 3000);
+}
+</script>
+{% endblock %}

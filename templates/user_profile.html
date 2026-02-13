@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - LearnNest{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #1C1C1E 0%, #000000 100%); min-height: 100vh; padding: 2rem 0;">
+    <div style="max-width: 900px; margin: 0 auto;">
+        
+        <!-- Profile Header -->
+        <div style="background: linear-gradient(135deg, #0A84FF 0%, #006EDC 100%); border-radius: 20px; padding: 3rem; margin-bottom: 2rem; box-shadow: 0 12px 40px rgba(10, 132, 255, 0.3);">
+            <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                <!-- Avatar -->
+                <div style="position: relative;">
+                    <div id="avatar" style="width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #34C759, #00B341); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: white; border: 4px solid white; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+                        👤
+                    </div>
+                    <button onclick="changeAvatar()" style="position: absolute; bottom: 0; right: 0; background: white; color: #0A84FF; border: none; padding: 0.5rem 1rem; border-radius: 50px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <i class="fas fa-camera"></i> Change
+                    </button>
+                </div>
+                
+                <!-- Profile Info -->
+                <div style="color: white; flex: 1;">
+                    <h1 style="margin: 0 0 0.5rem 0; font-size: 2.2rem;">{{ current_user.full_name }}</h1>
+                    <p style="margin: 0 0 1rem 0; opacity: 0.9; font-size: 1.1rem;">@{{ current_user.username }}</p>
+                    <div style="display: flex; gap: 1rem; margin: 1.5rem 0 0 0;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 0.8rem 1.5rem; border-radius: 10px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 0.9rem; opacity: 0.9;">Status</div>
+                            <div id="user-status" style="font-weight: 700; margin-top: 0.3rem;">🟢 Online</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.2); padding: 0.8rem 1.5rem; border-radius: 10px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 0.9rem; opacity: 0.9;">Role</div>
+                            <div style="font-weight: 700; margin-top: 0.3rem; text-transform: uppercase;">{{ current_user.role }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid #3A3A3C;">
+            <button onclick="switchTab('info')" class="tab-button" style="padding: 1rem 2rem; background: transparent; color: white; border: none; cursor: pointer; font-weight: 600; border-bottom: 3px solid #0A84FF; transition: all 0.3s;">
+                <i class="fas fa-info-circle"></i> Profile Info
+            </button>
+            <button onclick="switchTab('contacts')" class="tab-button" style="padding: 1rem 2rem; background: transparent; color: #8E8E93; border: none; cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                <i class="fas fa-users"></i> Contacts
+            </button>
+            <button onclick="switchTab('privacy')" class="tab-button" style="padding: 1rem 2rem; background: transparent; color: #8E8E93; border: none; cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                <i class="fas fa-lock"></i> Privacy
+            </button>
+            <button onclick="switchTab('settings')" class="tab-button" style="padding: 1rem 2rem; background: transparent; color: #8E8E93; border: none; cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="info-tab" style="display: block;">
+            <div style="background: #1C1C1E; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5); margin-bottom: 2rem;">
+                <h3 style="color: white; margin-top: 0; font-size: 1.3rem;">About You</h3>
+                <textarea id="bio-input" placeholder="Write your bio..." style="width: 100%; height: 100px; padding: 1rem; border: 1px solid #3A3A3C; border-radius: 10px; background: #2C2C2E; color: white; font-family: inherit; margin: 1rem 0; resize: none;">{{ current_user.bio or '' }}</textarea>
+                <button onclick="updateBio()" style="background: linear-gradient(135deg, #0A84FF 0%, #006EDC 100%); color: white; padding: 0.8rem 2rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 2rem;">Save Bio</button>
+                
+                <div style="margin-top: 2rem;">
+                    <h4 style="color: white; margin: 0 0 1rem 0;">Contact Information</h4>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #8E8E93; font-size: 0.9rem;">Email</label>
+                        <input type="email" value="{{ current_user.email }}" disabled style="width: 100%; padding: 0.8rem; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; color: white; margin-top: 0.5rem;">
+                    </div>
+                    <div>
+                        <label style="color: #8E8E93; font-size: 0.9rem;">Phone (for SMS)</label>
+                        <input type="tel" id="phone-input" placeholder="+1 (555) 000-0000" style="width: 100%; padding: 0.8rem; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; color: white; margin-top: 0.5rem;" data-testid="input-phone">
+                        <button onclick="updatePhone()" style="background: #34C759; color: white; padding: 0.6rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; margin-top: 0.8rem; font-weight: 600;" data-testid="button-update-phone">Update Phone</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="contacts-tab" style="display: none;">
+            <div style="background: #1C1C1E; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="color: white; margin: 0; font-size: 1.3rem;">Your Contacts</h3>
+                    <input type="text" id="search-contacts" placeholder="Search contacts..." style="padding: 0.7rem 1rem; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; color: white;" data-testid="input-search-contacts">
+                </div>
+                <div id="contacts-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;"></div>
+            </div>
+        </div>
+
+        <div id="privacy-tab" style="display: none;">
+            <div style="background: #1C1C1E; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+                <h3 style="color: white; margin-top: 0; font-size: 1.3rem;">Privacy & Security</h3>
+                
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <input type="checkbox" id="profile-visibility" checked style="width: 18px; height: 18px; cursor: pointer;" data-testid="checkbox-profile-visibility">
+                        <span style="color: white;">Make profile public</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <input type="checkbox" id="message-requests" checked style="width: 18px; height: 18px; cursor: pointer;" data-testid="checkbox-message-requests">
+                        <span style="color: white;">Allow message requests from anyone</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="color: white; margin: 0 0 1rem 0;">Blocked Users</h4>
+                    <div id="blocked-users" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-tab" style="display: none;">
+            <div style="background: #1C1C1E; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+                <h3 style="color: white; margin-top: 0; font-size: 1.3rem;">Preferences</h3>
+                
+                <div style="margin-bottom: 2rem;">
+                    <label style="color: white; display: block; margin-bottom: 0.8rem;">Theme</label>
+                    <select id="theme-selector" style="padding: 0.8rem; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; color: white; cursor: pointer;" data-testid="select-theme">
+                        <option value="dark">Dark Mode</option>
+                        <option value="light">Light Mode</option>
+                        <option value="auto">Auto</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <input type="checkbox" id="notifications" checked style="width: 18px; height: 18px; cursor: pointer;" data-testid="checkbox-notifications">
+                        <span style="color: white;">Enable push notifications</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <input type="checkbox" id="read-receipts" checked style="width: 18px; height: 18px; cursor: pointer;" data-testid="checkbox-read-receipts">
+                        <span style="color: white;">Show read receipts</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div style="background: #3C1C1E; border-radius: 16px; padding: 2rem; border: 1px solid #FF453A; margin-top: 2rem;">
+            <h3 style="color: #FF453A; margin-top: 0;">Danger Zone</h3>
+            <button onclick="deleteAccount()" style="background: #FF453A; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" data-testid="button-delete-account">
+                <i class="fas fa-trash"></i> Delete Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+
+function switchTab(tabName) {
+    document.querySelectorAll('[id$="-tab"]').forEach(el => el.style.display = 'none');
+    document.getElementById(tabName + '-tab').style.display = 'block';
+    
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.style.color = '#8E8E93';
+        btn.style.borderBottomColor = 'transparent';
+    });
+    event.target.closest('.tab-button').style.color = 'white';
+    event.target.closest('.tab-button').style.borderBottomColor = '#0A84FF';
+    
+    if (tabName === 'contacts') loadContacts();
+}
+
+function changeAvatar() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('avatar').innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                updateAvatar(event.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    input.click();
+}
+
+function updateBio() {
+    const bio = document.getElementById('bio-input').value;
+    fetch('/api/profile/bio', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({bio})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) alert('Bio updated!');
+    });
+}
+
+function updatePhone() {
+    const phone = document.getElementById('phone-input').value;
+    fetch('/api/profile/phone', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({phone})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) alert('Phone updated! SMS features now available.');
+    });
+}
+
+function loadContacts() {
+    fetch('/api/contacts')
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('contacts-list');
+            list.innerHTML = data.contacts.map(c => `
+                <div style="background: #2C2C2E; padding: 1rem; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👤</div>
+                    <div style="color: white; font-weight: 600;">${c.full_name}</div>
+                    <button onclick="removeContact(${c.id})" style="background: #FF453A; color: white; padding: 0.4rem 0.8rem; border: none; border-radius: 6px; margin-top: 0.8rem; cursor: pointer; font-size: 0.85rem;">Remove</button>
+                </div>
+            `).join('');
+        });
+}
+
+function deleteAccount() {
+    if (confirm('Are you sure? This cannot be undone.')) {
+        fetch('/api/profile/delete', {method: 'DELETE'})
+            .then(() => window.location.href = '/login');
+    }
+}
+</script>
+
+<style>
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --text-primary: #FFFFFF;
+}
+</style>
+{% endblock %}

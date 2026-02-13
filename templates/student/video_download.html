@@ -1,0 +1,182 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta viewport="width=device-width, initial-scale=1.0">
+    <title>LearnNest Video Downloader</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        @keyframes bgMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 400% 0; }
+        }
+
+        .animated-bg {
+            background: linear-gradient(90deg, #0f0f0f, #1a1a1a, #0f0f0f, #1a1a1a);
+            background-size: 400% 400%;
+            animation: bgMove 12s infinite linear;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.8rem;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            color: #ffffff;
+            text-shadow: 0 0 15px #4f46e5;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            background: #1b1b1b;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        button {
+            width: 120px;
+            border: none;
+            border-radius: 6px;
+            background: #4f46e5;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #6a63f8;
+            box-shadow: 0 0 10px #4f46e5;
+        }
+
+        /* ---------- POPUP NOTIFICATION ---------- */
+        #popup {
+            position: fixed;
+            bottom: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            padding: 18px 28px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px #4f46e5;
+            font-size: 1.2rem;
+            color: #ffffff;
+            text-align: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: 0.6s;
+        }
+
+        #popup.show {
+            bottom: 40px;
+            opacity: 1;
+        }
+
+        /* Pulse animation for icon */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        .popup-icon {
+            font-size: 38px;
+            margin-bottom: 8px;
+            animation: pulse 1.3s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="animated-bg">
+
+        <h1>LearnNest — YouTube Downloader</h1>
+
+        <div class="container">
+
+            <form id="videoForm">
+                <input type="text" id="videoLink" name="link" placeholder="YouTube Video Link (MP4)" required>
+                <button id="videoBtn" type="submit">Download</button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Popup -->
+    <div id="popup">
+        <div class="popup-icon">⬇️</div>
+        Your video will begin downloading.<br>Please wait…
+    </div>
+
+    <script>
+        // Auto fill from URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const url = params.get("url");
+        if (url) document.getElementById("videoLink").value = url;
+
+        // Show popup
+        function showPopup() {
+            const popup = document.getElementById("popup");
+            popup.classList.add("show");
+
+            // Hide popup after 5 seconds
+            setTimeout(() => {
+                popup.classList.remove("show");
+            }, 5000);
+        }
+
+        // Handle submit
+        document.getElementById("videoForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const link = document.getElementById("videoLink").value.trim();
+            if (link) {
+                showPopup();
+
+                setTimeout(() => {
+                    window.open("{{ url_for('submit_video_download') }}?link=" + encodeURIComponent(link), "_blank");
+                }, 700);
+            }
+        });
+
+        // Auto-click after 1 second
+        setTimeout(() => {
+            const link = document.getElementById("videoLink").value.trim();
+            if (link) document.getElementById("videoBtn").click();
+        }, 1000);
+    </script>
+
+</body>
+</html>
+{% extends "base.html" %}

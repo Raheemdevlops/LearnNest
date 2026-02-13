@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students - LearnNest{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-user-graduate"></i> Student Management</h1>
+            <p>View, manage, and moderate all student accounts</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-users"></i> All Students ({{ students|length }})
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if students %}
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Email</th>
+                                <th>Enrollments</th>
+                                <th>Joined</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                                <tr id="student-row-{{ student.id }}">
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                <i class="fas fa-user-graduate"></i>
+                                            </div>
+                                            <div class="user-details">
+                                                <div class="user-name">{{ student.full_name }}</div>
+                                                <div class="user-id">ID: {{ student.id }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <button onclick="viewStudentEnrollments({{ student.id }}, '{{ student.full_name }}')"
+                                                class="enrollment-badge clickable">
+                                            <i class="fas fa-book"></i> {{ student.enrollment_count }} course{{ 's' if student.enrollment_count != 1 else '' }}
+                                        </button>
+                                    </td>
+                                    <td>{{ student.created_at[:10] if student.created_at else 'N/A' }}</td>
+                                    <td>
+                                        {% if student.is_active %}
+                                            <span class="status-badge active">
+                                                <i class="fas fa-check-circle"></i> Active
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge blocked">
+                                                <i class="fas fa-ban"></i> Blocked
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button onclick="toggleStudentBlock({{ student.id }}, {{ student.is_active }})" 
+                                                    class="btn btn-sm {% if student.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                                                    title="{% if student.is_active %}Block{% else %}Unblock{% endif %} Student">
+                                                <i class="fas {% if student.is_active %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                                                {% if student.is_active %}Block{% else %}Unblock{% endif %}
+                                            </button>
+                                            <button onclick="deleteStudent({{ student.id }}, '{{ student.full_name }}')" 
+                                                    class="btn btn-sm btn-danger"
+                                                    title="Delete Student">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3>No Students Yet</h3>
+                    <p>Student accounts will appear here once they register.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .header-content h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #0A84FF 0%, #0A84FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+
+    .header-content p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .card-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(135deg, rgba(10, 132, 255, 0.05) 0%, rgba(10, 132, 255, 0.05) 100%);
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-content {
+        padding: 0;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .modern-table thead {
+        background: linear-gradient(135deg, rgba(10, 132, 255, 0.08) 0%, rgba(10, 132, 255, 0.08) 100%);
+    }
+
+    .modern-table th {
+        padding: 1.2rem 1.5rem;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table td {
+        padding: 1.2rem 1.5rem;
+        border-top: 1px solid var(--border-light);
+        color: var(--text-secondary);
+    }
+
+    .modern-table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .modern-table tbody tr:hover {
+        background: rgba(10, 132, 255, 0.03);
+        transform: scale(1.01);
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0A84FF 0%, #FFFFFF 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .user-name {
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+    .user-id {
+        font-size: 0.85rem;
+        color: var(--text-light);
+    }
+
+    .enrollment-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, rgba(10, 132, 255, 0.15) 0%, rgba(255, 255, 255, 0.15) 100%);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .status-badge.active {
+        background: rgba(10, 132, 255, 0.15);
+        color: #0A84FF;
+    }
+
+    .status-badge.blocked {
+        background: rgba(255, 69, 58, 0.15);
+        color: #FF453A;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #64748B 0%, #475569 100%);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(100, 116, 139, 0.4);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #FFD60A 0%, #FF9500 100%);
+        color: #1C1C1E;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 214, 10, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #0A84FF 0%, #0066CC 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(10, 132, 255, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #FF453A 0%, #FF3B30 100%);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 69, 58, 0.4);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+</style>
+
+<script>
+function toggleStudentBlock(studentId, isActive) {
+    if (!confirm(`Are you sure you want to ${isActive ? 'block' : 'unblock'} this student?`)) {
+        return;
+    }
+    
+    fetch(`/admin/students/${studentId}/toggle-block`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+
+function deleteStudent(studentId, studentName) {
+    if (!confirm(`Are you sure you want to DELETE ${studentName}?\n\nThis will permanently remove:\n- Student account\n- All enrollments\n- All student notes\n\nThis action cannot be undone!`)) {
+        return;
+    }
+    
+    // Double confirmation for deletion
+    if (!confirm(`FINAL CONFIRMATION: Delete ${studentName} permanently?`)) {
+        return;
+    }
+    
+    fetch(`/admin/students/${studentId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            document.getElementById(`student-row-${studentId}`).remove();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+</script>
+{% endblock %}

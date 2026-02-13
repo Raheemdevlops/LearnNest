@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if view_type == 'pending' %}
+        Pending Instructor Approvals - LearnNest Enhanced
+    {% else %}
+        Instructor Management - LearnNest Enhanced
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        {% if view_type == 'pending' %}
+            <h1><i class="fas fa-clock"></i> Pending Instructor Approvals</h1>
+            <p>Review and approve instructor applications</p>
+        {% else %}
+            <h1><i class="fas fa-chalkboard-teacher"></i> Instructor Management</h1>
+            <p>Manage all instructor accounts and approvals</p>
+        {% endif %}
+    </div>
+
+    <!-- Navigation tabs -->
+    <div class="admin-nav-tabs">
+        <a href="{{ url_for('admin_instructors') }}" 
+           class="tab-link {% if not view_type %}active{% endif %}">
+            <i class="fas fa-users"></i> All Instructors
+        </a>
+        <a href="{{ url_for('admin_instructors_pending') }}" 
+           class="tab-link {% if view_type == 'pending' %}active{% endif %}">
+            <i class="fas fa-clock"></i> Pending Approvals
+            {% if stats.pending_instructors > 0 %}
+                <span class="badge">{{ stats.pending_instructors }}</span>
+            {% endif %}
+        </a>
+    </div>
+
+    {% if not view_type %}
+        <!-- Instructor Stats (only show on main page) -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">{{ stats.total_instructors }}</span>
+                <div class="stat-label">Total Instructors</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ stats.pending_instructors }}</span>
+                <div class="stat-label">Pending Approval</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ stats.approved_instructors }}</span>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ stats.rejected_instructors }}</span>
+                <div class="stat-label">Rejected</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Instructors Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                {% if view_type == 'pending' %}
+                    <i class="fas fa-clock"></i> Pending Applications
+                {% else %}
+                    <i class="fas fa-list"></i> All Instructors
+                {% endif %}
+            </h3>
+            {% if view_type == 'pending' and stats.pending_instructors == 0 %}
+                <span class="badge badge-success">All caught up!</span>
+            {% endif %}
+        </div>
+        <div class="card-content">
+            {% if instructors %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Instructor</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Registered</th>
+                                {% if not view_type %}
+                                    <th>Courses</th>
+                                    <th>Approved By</th>
+                                {% endif %}
+                                <th>Screenshot</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for instructor in instructors %}
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                <i class="fas fa-user-circle"></i>
+                                            </div>
+                                            <div>
+                                                <div class="user-name">{{ instructor.full_name }}</div>
+                                                <div class="user-username">@{{ instructor.username }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ instructor.email }}</td>
+                                    <td>
+                                        <span class="status-badge {{ instructor.instructor_approval_status }}">
+                                            {% if instructor.instructor_approval_status == 'pending' %}
+                                                <i class="fas fa-clock"></i> Pending
+                                            {% elif instructor.instructor_approval_status == 'approved' %}
+                                                <i class="fas fa-check"></i> Approved
+                                            {% elif instructor.instructor_approval_status == 'rejected' %}
+                                                <i class="fas fa-times"></i> Rejected
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ instructor.created_at[:10] if instructor.created_at else 'N/A' }}</td>
+                                    {% if not view_type %}
+                                        <td>
+                                            <span class="course-count">{{ instructor.course_count or 0 }}</span>
+                                        </td>
+                                        <td>
+                                            {% if instructor.approved_by_name %}
+                                                {{ instructor.approved_by_name }}
+                                                <small class="text-muted">
+                                                    {{ instructor.approved_at[:10] if instructor.approved_at else '' }}
+                                                </small>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+                                    <td>
+                                        {% if instructor.instructor_screenshot %}
+                                            <div class="screenshot-container">
+                                                <img src="{{ url_for('instructor_screenshot', filename=instructor.instructor_screenshot) }}" 
+                                                     alt="Instructor Screenshot" class="instructor-screenshot" 
+                                                     onclick="openScreenshotModal(this.src)">
+                                                <i class="fas fa-search-plus screenshot-zoom-icon"></i>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">No screenshot</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            {% if instructor.instructor_approval_status == 'pending' %}
+                                                <form method="POST" action="{{ url_for('admin_approve_instructor', instructor_id=instructor.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-success" 
+                                                            onclick="return confirm('Are you sure you want to approve {{ instructor.full_name }}?')">
+                                                        <i class="fas fa-check"></i> Approve
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{{ url_for('admin_reject_instructor', instructor_id=instructor.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                                            onclick="return confirm('Are you sure you want to reject {{ instructor.full_name }}?')">
+                                                        <i class="fas fa-times"></i> Reject
+                                                    </button>
+                                                </form>
+                                            {% elif instructor.instructor_approval_status == 'rejected' %}
+                                                <form method="POST" action="{{ url_for('admin_approve_instructor', instructor_id=instructor.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-success" 
+                                                            onclick="return confirm('Are you sure you want to approve {{ instructor.full_name }}?')">
+                                                        <i class="fas fa-redo"></i> Re-approve
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-success">
+                                                    <i class="fas fa-check-circle"></i> Approved
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    {% if view_type == 'pending' %}
+                        <i class="fas fa-check-circle fa-3x"></i>
+                        <h3>No Pending Applications</h3>
+                        <p>All instructor applications have been processed.</p>
+                    {% else %}
+                        <i class="fas fa-chalkboard-teacher fa-3x"></i>
+                        <h3>No Instructors Found</h3>
+                        <p>No instructor accounts have been created yet.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Screenshot Modal -->
+<div id="screenshotModal" class="modal" onclick="closeScreenshotModal()">
+    <div class="modal-content">
+        <img id="modalImage" src="" alt="Screenshot">
+        <span class="modal-close" onclick="closeScreenshotModal()">&times;</span>
+    </div>
+</div>
+
+<style>
+.screenshot-container {
+    position: relative;
+    width: 80px;
+    height: 60px;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.screenshot-container:hover {
+    transform: scale(1.05);
+}
+
+.instructor-screenshot {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.5rem;
+}
+
+.screenshot-zoom-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.screenshot-container:hover .screenshot-zoom-icon {
+    opacity: 1;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    margin: 5% auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.5);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 0, 0, 0.7);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+<style>
+.admin-nav-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.tab-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.tab-link:hover {
+    color: var(--primary-color);
+    background-color: var(--background);
+}
+
+.tab-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: var(--background);
+}
+
+.tab-link .badge {
+    background-color: var(--danger-color);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    font-size: 2rem;
+    color: var(--text-secondary);
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-username {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.pending {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-badge.approved {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-badge.rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.course-count {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.text-success {
+    color: var(--success-color);
+}
+
+.badge-success {
+    background-color: var(--success-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+</style>
+
+<script>
+function openScreenshotModal(imageSrc) {
+    document.getElementById('modalImage').src = imageSrc;
+    document.getElementById('screenshotModal').style.display = 'block';
+}
+
+function closeScreenshotModal() {
+    document.getElementById('screenshotModal').style.display = 'none';
+}
+
+// Close modal when clicking outside the image
+document.getElementById('screenshotModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeScreenshotModal();
+    }
+});
+
+// Close modal with ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeScreenshotModal();
+    }
+});
+</script>
+{% endblock %}

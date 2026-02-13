@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.title }} - {{ forum.title }} - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="breadcrumb-link">
+                    <i class="fas fa-comments"></i> Discussions
+                </a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="{{ url_for('instructor_forum_topics', course_id=course.id, forum_id=forum.id) }}" class="breadcrumb-link">
+                    {{ forum.title }}
+                </a>
+                <i class="fas fa-chevron-right"></i>
+                <span class="breadcrumb-current">{{ topic.title }}</span>
+            </div>
+            <h1><i class="fas fa-comment-dots"></i> {{ topic.title }}</h1>
+            {% if topic.is_pinned %}
+                <div class="topic-badge pinned">
+                    <i class="fas fa-thumbtack"></i> Pinned Topic
+                </div>
+            {% endif %}
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-success" onclick="toggleReplyModal()">
+                <i class="fas fa-reply"></i> Reply
+            </button>
+            <a href="{{ url_for('instructor_forum_topics', course_id=course.id, forum_id=forum.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Topics
+            </a>
+        </div>
+    </div>
+
+    <!-- Topic Stats -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-reply"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ replies|length }}</h3>
+                <p>Replies</p>
+            </div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-eye"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ topic.view_count or 0 }}</h3>
+                <p>Views</p>
+            </div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ topic.author_name }}</h3>
+                <p>Author</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Original Topic -->
+    <div class="card topic-post">
+        <div class="post-header">
+            <div class="author-info">
+                <div class="author-avatar">
+                    <i class="fas fa-user-circle fa-2x"></i>
+                </div>
+                <div class="author-details">
+                    <h4>{{ topic.author_name }}</h4>
+                    <span class="author-role role-{{ topic.author_role }}">
+                        {% if topic.author_role == 'instructor' %}
+                            <i class="fas fa-chalkboard-teacher"></i> Instructor
+                        {% elif topic.author_role == 'admin' %}
+                            <i class="fas fa-shield-alt"></i> Admin
+                        {% else %}
+                            <i class="fas fa-user-graduate"></i> Student
+                        {% endif %}
+                    </span>
+                    <div class="post-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ topic.created_at[:19] }}
+                        {% if topic.updated_at != topic.created_at %}
+                            <span class="text-muted">(edited {{ topic.updated_at[:19] }})</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="post-content">
+            <div class="content-text">
+                {{ topic.content|replace('\n', '<br>')|safe }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Replies Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-comments"></i> Replies ({{ replies|length }})
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if replies %}
+                <div class="replies-list">
+                    {% for reply in replies %}
+                        <div class="reply-post">
+                            <div class="post-header">
+                                <div class="author-info">
+                                    <div class="author-avatar">
+                                        <i class="fas fa-user-circle"></i>
+                                    </div>
+                                    <div class="author-details">
+                                        <h5>{{ reply.author_name }}</h5>
+                                        <span class="author-role role-{{ reply.author_role }}">
+                                            {% if reply.author_role == 'instructor' %}
+                                                <i class="fas fa-chalkboard-teacher"></i> Instructor
+                                            {% elif reply.author_role == 'admin' %}
+                                                <i class="fas fa-shield-alt"></i> Admin
+                                            {% else %}
+                                                <i class="fas fa-user-graduate"></i> Student
+                                            {% endif %}
+                                        </span>
+                                        <div class="post-date">
+                                            <i class="fas fa-clock"></i>
+                                            {{ reply.created_at[:19] }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="post-content">
+                                <div class="content-text">
+                                    {{ reply.content|replace('\n', '<br>')|safe }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comment fa-2x"></i>
+                    <h3>No Replies Yet</h3>
+                    <p>Be the first to reply to this discussion topic.</p>
+                    <button class="btn btn-primary" onclick="toggleReplyModal()">
+                        <i class="fas fa-reply"></i> Add First Reply
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reply Modal -->
+<div id="replyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4><i class="fas fa-reply"></i> Reply to Topic</h4>
+            <button class="close-btn" onclick="toggleReplyModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('instructor_create_reply', course_id=course.id, forum_id=forum.id, topic_id=topic.id) }}" class="modal-form">
+            <div class="form-group">
+                <label>Replying to: <span class="text-primary">{{ topic.title }}</span></label>
+            </div>
+            <div class="form-group">
+                <label for="reply_content">Your Reply *</label>
+                <textarea id="reply_content" name="content" rows="6" required
+                          placeholder="Write your reply here..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-reply"></i> Post Reply
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="toggleReplyModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.breadcrumb-link:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    color: white;
+    font-weight: 600;
+}
+
+.breadcrumb i.fas.fa-chevron-right {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+}
+
+.topic-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.topic-badge.pinned {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning-color);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.topic-post {
+    border-left: 4px solid var(--primary-color);
+}
+
+.post-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.author-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.author-avatar {
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.author-details h4,
+.author-details h5 {
+    margin: 0 0 0.25rem 0;
+    color: #333;
+}
+
+.author-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-instructor {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color);
+}
+
+.role-admin {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+}
+
+.role-student {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.post-date {
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.75rem;
+}
+
+.post-content {
+    padding: 1.5rem;
+}
+
+.content-text {
+    line-height: 1.6;
+    color: #333;
+}
+
+.replies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.reply-post {
+    background: rgba(255,255,255,0.5);
+    border-radius: 12px;
+    border-left: 3px solid var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.reply-post:hover {
+    border-left-color: var(--primary-color);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.reply-post .post-header {
+    padding: 1rem 1rem 0.5rem;
+}
+
+.reply-post .post-content {
+    padding: 0 1rem 1rem;
+}
+
+.reply-post .author-details h5 {
+    font-size: 0.9rem;
+}
+
+.reply-post .author-avatar {
+    font-size: 1.25rem;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+    margin: 5% auto;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: #333;
+}
+
+.modal-form {
+    padding: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    font-size: 0.875rem;
+    resize: vertical;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+</style>
+
+<script>
+function toggleReplyModal() {
+    const modal = document.getElementById('replyModal');
+    modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+    
+    if (modal.style.display === 'block') {
+        document.getElementById('reply_content').focus();
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('replyModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

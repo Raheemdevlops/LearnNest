@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Create Assignment - {{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="create-assignment-vip">
+    <div class="vip-header-compact">
+        <div>
+            <h1 class="vip-title">
+                <i class="fas fa-plus-circle"></i> Create New Assignment
+            </h1>
+            <p class="vip-subtitle">{{ course.title }} ({{ course.course_code }})</p>
+        </div>
+        <a href="{{ url_for('instructor_course_assignments', course_id=course.id) }}" class="btn-vip btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="assignment-form-vip">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        
+        <div class="form-grid">
+            <div class="form-main">
+                <div class="form-section-vip">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i> Assignment Details
+                    </h3>
+                    
+                    <div class="form-group-vip">
+                        <label for="title">Assignment Title *</label>
+                        <input type="text" id="title" name="title" required 
+                               placeholder="e.g., Research Paper on Climate Change">
+                    </div>
+                    
+                    <div class="form-group-vip">
+                        <label for="assignment_type">Assignment Type *</label>
+                        <select id="assignment_type" name="assignment_type" required>
+                            <option value="essay">Essay / Written Work</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="project">Project</option>
+                            <option value="presentation">Presentation</option>
+                            <option value="lab">Lab Report</option>
+                            <option value="homework">Homework</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-vip">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" 
+                                  placeholder="Brief overview of the assignment..."></textarea>
+                    </div>
+                    
+                    <div class="form-group-vip">
+                        <label for="instructions">Detailed Instructions *</label>
+                        <textarea id="instructions" name="instructions" rows="8" required 
+                                  placeholder="Provide detailed instructions for students...
+
+Example:
+1. Research the topic thoroughly
+2. Write a minimum of 1500 words
+3. Include at least 5 credible sources
+4. Follow APA citation format
+5. Submit as PDF or Word document"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section-vip">
+                    <h3 class="section-title">
+                        <i class="fas fa-paperclip"></i> Assignment Materials (Optional)
+                    </h3>
+                    
+                    <div class="form-group-vip">
+                        <label for="assignment_files">Upload Files</label>
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <input type="file" id="assignment_files" name="assignment_files" 
+                                   multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip">
+                            <div class="drop-zone-content">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag and drop files here or click to browse</p>
+                                <span class="file-hint">PDF, DOC, PPT, TXT, ZIP (Max 50MB each)</span>
+                            </div>
+                            <div id="fileList" class="file-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-sidebar">
+                <div class="form-section-vip sticky">
+                    <h3 class="section-title">
+                        <i class="fas fa-cog"></i> Settings
+                    </h3>
+                    
+                    <div class="form-group-vip">
+                        <label for="due_date">
+                            <i class="fas fa-calendar-alt"></i> Due Date & Time
+                        </label>
+                        <input type="datetime-local" id="due_date" name="due_date">
+                        <small>Leave empty for no deadline</small>
+                    </div>
+                    
+                    <div class="form-group-vip">
+                        <label for="max_points">
+                            <i class="fas fa-star"></i> Maximum Points
+                        </label>
+                        <input type="number" id="max_points" name="max_points" 
+                               value="100" min="1" max="1000" required>
+                    </div>
+                    
+                    <div class="form-group-vip checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="allow_late_submission" name="allow_late_submission">
+                            <span>Allow Late Submissions</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group-vip">
+                        <label for="status">
+                            <i class="fas fa-eye"></i> Visibility Status
+                        </label>
+                        <select id="status" name="status">
+                            <option value="draft">Draft (Not Visible to Students)</option>
+                            <option value="published">Published (Visible to Students)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button type="submit" class="btn-vip btn-primary btn-block">
+                            <i class="fas fa-save"></i> Create Assignment
+                        </button>
+                        <a href="{{ url_for('instructor_course_assignments', course_id=course.id) }}" 
+                           class="btn-vip btn-secondary btn-block">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+:root {
+    --vip-black: #000000;
+    --vip-dark: #0a0a0a;
+    --vip-gray: #1a1a1a;
+    --vip-border: #2a2a2a;
+    --vip-primary: #00d4ff;
+    --vip-success: #00ff88;
+    --vip-warning: #ffaa00;
+    --vip-purple: #a855f7;
+}
+
+.create-assignment-vip {
+    min-height: 100vh;
+    background: var(--vip-black);
+    padding: 2rem;
+    color: #ffffff;
+}
+
+.vip-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid var(--vip-primary);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+.vip-title {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.vip-subtitle {
+    color: #aaa;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.btn-vip {
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-vip.btn-primary {
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    color: #000;
+    border: none;
+}
+
+.btn-vip.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);
+}
+
+.btn-vip.btn-secondary {
+    background: var(--vip-gray);
+    color: #fff;
+    border-color: var(--vip-border);
+}
+
+.btn-vip.btn-secondary:hover {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.btn-block {
+    width: 100%;
+    justify-content: center;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 2rem;
+}
+
+.form-section-vip {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(26, 26, 26, 0.95));
+    border: 2px solid var(--vip-border);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.form-section-vip.sticky {
+    position: sticky;
+    top: 20px;
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--vip-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.form-group-vip {
+    margin-bottom: 1.5rem;
+}
+
+.form-group-vip label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group-vip input[type="text"],
+.form-group-vip input[type="number"],
+.form-group-vip input[type="datetime-local"],
+.form-group-vip textarea,
+.form-group-vip select {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--vip-border);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.form-group-vip input:focus,
+.form-group-vip textarea:focus,
+.form-group-vip select:focus {
+    outline: none;
+    border-color: var(--vip-primary);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.form-group-vip textarea {
+    resize: vertical;
+}
+
+.form-group-vip small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #888;
+    font-size: 0.875rem;
+}
+
+.checkbox-group {
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.file-drop-zone {
+    border: 2px dashed var(--vip-border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.file-drop-zone:hover {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.file-drop-zone input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+}
+
+.drop-zone-content i {
+    font-size: 3rem;
+    color: var(--vip-primary);
+    margin-bottom: 1rem;
+}
+
+.drop-zone-content p {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.file-hint {
+    color: #888;
+    font-size: 0.875rem;
+}
+
+.file-list {
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.file-item {
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-section-vip.sticky {
+        position: static;
+    }
+}
+</style>
+
+<script>
+const fileInput = document.getElementById('assignment_files');
+const fileList = document.getElementById('fileList');
+
+fileInput.addEventListener('change', function(e) {
+    fileList.innerHTML = '';
+    const files = Array.from(e.target.files);
+    
+    files.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+            <span><i class="fas fa-file"></i> ${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+        `;
+        fileList.appendChild(fileItem);
+    });
+});
+</script>
+{% endblock %}

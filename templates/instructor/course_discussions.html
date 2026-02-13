@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Discussion Forum - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px; margin: 2rem auto;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #e0e0e0;">
+            <div>
+                <h2 style="margin: 0; color: #2c3e50;">
+                    <i class="fas fa-comments"></i> Live Discussion Forum
+                </h2>
+                <p style="margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 1.1rem;">{{ course.title }} ({{ course.course_code }})</p>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="background: #95a5a6; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+        
+        <div id="messages-container" style="height: 450px; overflow-y: auto; padding: 1.5rem; background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e0e0e0;">
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="message-bubble" style="margin-bottom: 1.2rem; {% if msg.sender_id == current_user.id %}text-align: right;{% endif %}">
+                    <div style="display: inline-block; max-width: 70%; text-align: left; padding: 1rem 1.2rem; background: {% if msg.sender_id == current_user.id %}linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;{% else %}#ffffff; color: #2c3e50; border: 1px solid #e0e0e0;{% endif %} border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                            <strong style="font-size: 0.9rem; {% if msg.sender_id == current_user.id %}color: #ffffff;{% else %}color: #667eea;{% endif %}">
+                                {{ msg.sender_name }}
+                                {% if msg.sender_role == 'instructor' %}
+                                    <span style="background: #e74c3c; color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.3rem;">INSTRUCTOR</span>
+                                {% elif msg.sender_role == 'admin' %}
+                                    <span style="background: #f39c12; color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.3rem;">ADMIN</span>
+                                {% endif %}
+                            </strong>
+                            <small style="{% if msg.sender_id == current_user.id %}color: rgba(255,255,255,0.8);{% else %}color: #95a5a6;{% endif %} font-size: 0.75rem; margin-left: 0.8rem;">{{ msg.created_at }}</small>
+                        </div>
+                        <p style="margin: 0; line-height: 1.5; word-wrap: break-word;">{{ msg.message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 3rem; color: #95a5a6;">
+                    <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="font-size: 1.1rem;">No messages yet. Start the conversation!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <input type="text" id="message-input" placeholder="Type your message here..." 
+                   style="flex: 1; padding: 1rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; transition: border-color 0.3s;"
+                   onkeypress="if(event.key === 'Enter') sendMessage();">
+            <button onclick="sendMessage()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                <i class="fas fa-paper-plane"></i> Send
+            </button>
+        </div>
+        
+        <div id="typing-indicator" style="margin-top: 0.5rem; color: #95a5a6; font-size: 0.85rem; min-height: 20px; font-style: italic;"></div>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const socket = io();
+    const courseId = {{ course.id }};
+    const currentUserId = {{ current_user.id }};
+    const currentUserName = "{{ current_user.full_name }}";
+    const currentUserRole = "{{ current_user.role }}";
+    
+    socket.on('connect', function() {
+        console.log('Connected to server');
+        socket.emit('join_course_chat', {course_id: courseId});
+    });
+    
+    socket.on('new_course_message', function(data) {
+        const messagesContainer = document.getElementById('messages-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-bubble';
+        
+        const isOwnMessage = data.sender_id === currentUserId;
+        const messageColor = isOwnMessage ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ffffff';
+        const textColor = isOwnMessage ? 'white' : '#2c3e50';
+        const nameColor = isOwnMessage ? '#ffffff' : '#667eea';
+        const timeColor = isOwnMessage ? 'rgba(255,255,255,0.8)' : '#95a5a6';
+        const border = isOwnMessage ? '' : 'border: 1px solid #e0e0e0;';
+        
+        let roleBadge = '';
+        if (data.sender_role === 'instructor') {
+            roleBadge = '<span style="background: #e74c3c; color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.3rem;">INSTRUCTOR</span>';
+        } else if (data.sender_role === 'admin') {
+            roleBadge = '<span style="background: #f39c12; color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.3rem;">ADMIN</span>';
+        }
+        
+        messageDiv.style.cssText = `margin-bottom: 1.2rem; ${isOwnMessage ? 'text-align: right;' : ''}`;
+        messageDiv.innerHTML = `
+            <div style="display: inline-block; max-width: 70%; text-align: left; padding: 1rem 1.2rem; background: ${messageColor}; color: ${textColor}; ${border} border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                    <strong style="font-size: 0.9rem; color: ${nameColor};">
+                        ${data.sender_name}${roleBadge}
+                    </strong>
+                    <small style="color: ${timeColor}; font-size: 0.75rem; margin-left: 0.8rem;">${data.timestamp}</small>
+                </div>
+                <p style="margin: 0; line-height: 1.5; word-wrap: break-word;">${escapeHtml(data.message)}</p>
+            </div>
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+    
+    socket.on('status', function(data) {
+        console.log('Status:', data.msg);
+    });
+    
+    function sendMessage() {
+        const input = document.getElementById('message-input');
+        const message = input.value.trim();
+        
+        if (message) {
+            socket.emit('send_course_message', {
+                course_id: courseId,
+                message: message,
+                sender_role: currentUserRole
+            });
+            input.value = '';
+            input.focus();
+        }
+    }
+    
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    document.getElementById('message-input').focus();
+    
+    const messagesContainer = document.getElementById('messages-container');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+</script>
+
+<style>
+    #message-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .message-bubble {
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}

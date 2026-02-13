@@ -1,0 +1,2107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="cyber-course-view">
+    <!-- Animated Background -->
+    <div class="cyber-bg">
+        <div class="grid-lines"></div>
+        <div class="scan-effect"></div>
+    </div>
+
+    <!-- Course Header -->
+    <div class="course-hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <a href="{{ url_for('dashboard') }}" class="back-btn">
+                <span>←</span> BACK TO DASHBOARD
+            </a>
+            <div class="course-badge">{{ course.course_code }}</div>
+            <h1 class="course-hero-title">{{ course.title }}</h1>
+            <div class="course-meta-bar">
+                <span class="meta-item">
+                    <span class="meta-icon">👨‍🏫</span>
+                    {{ course.instructor_name }}
+                </span>
+                <span class="meta-item">
+                    <span class="meta-icon">📚</span>
+                    {{ course.category if course.category else 'General' }}
+                </span>
+                <span class="meta-item">
+                    <span class="meta-icon">📅</span>
+                    Enrolled: {{ enrollment.enrolled_at[:10] if enrollment.enrolled_at else 'N/A' }}
+                </span>
+            </div>
+        </div>
+        <div class="progress-circle">
+            <svg viewBox="0 0 100 100">
+                <circle class="progress-bg" cx="50" cy="50" r="40"></circle>
+                <circle class="progress-bar" cx="50" cy="50" r="40" 
+                        style="stroke-dashoffset: {{ 251.2 - (251.2 * ([enrollment.progress_percentage|default(0), 100]|min / 100)) }}"></circle>
+            </svg>
+            <div class="progress-text">{{ [enrollment.progress_percentage|default(0), 100]|min|round|int }}%</div>
+            <div class="progress-label" style="margin-top: 0.5rem; font-size: 0.85rem; color: #888;">out of 100%</div>
+        </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="action-bar">
+        <a href="{{ url_for('course_discussion_forum', course_id=course.course_id) }}" class="action-card card-forum">
+            <div class="card-glow"></div>
+            <div class="action-icon">💬</div>
+            <div class="action-info">
+                <h3>DISCUSSION FORUM</h3>
+                <p>Ask questions & collaborate</p>
+            </div>
+            <span class="action-arrow">→</span>
+        </a>
+
+        <a href="{{ url_for('ai_notes_page', course_id=course.course_id) }}" class="action-card card-ai">
+            <div class="card-glow"></div>
+            <div class="action-icon">🤖</div>
+            <div class="action-info">
+                <h3>AI STUDY NOTES</h3>
+                <p>Instructor's AI-generated notes</p>
+            </div>
+            <span class="action-arrow">→</span>
+            <div class="ai-badge">AI POWERED</div>
+        </a>
+
+        <a href="{{ url_for('student_course_rankings', course_id=course.course_id) }}" class="action-card card-rankings">
+            <div class="card-glow"></div>
+            <div class="action-icon">🏆</div>
+            <div class="action-info">
+                <h3>QUIZ RANKINGS</h3>
+                <p>View leaderboard & compete</p>
+            </div>
+            <span class="action-arrow">→</span>
+        </a>
+
+        <a href="{{ url_for('messaging_hub') }}" class="action-card card-messages">
+            <div class="card-glow"></div>
+            <div class="action-icon">✉️</div>
+            <div class="action-info">
+                <h3>MESSAGES</h3>
+                <p>Contact instructor</p>
+            </div>
+            <span class="action-arrow">→</span>
+        </a>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Video Playlist Section -->
+        <div class="cyber-panel full-width">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">▶</span>
+                    VIDEO LECTURES
+                </h2>
+                <div class="header-badge">{{ video_playlist|length }} Videos</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if video_playlist %}
+                <!-- Video Player and Playlist Container -->
+                <div class="video-player-container">
+                    <!-- Main Video Player -->
+                    <div class="video-player-wrapper">
+                        <div id="videoPlayer" class="video-player">
+                            <!-- Video will be embedded here -->
+                        </div>
+                        <div class="video-player-info">
+                            <h3 id="currentVideoTitle">{{ video_playlist[0].title }}</h3>
+                            <p id="currentVideoDescription">{{ video_playlist[0].description or '' }}</p>
+                            
+                            <div id="videoActions" class="video-actions-btns">
+                                <!-- Hidden data attributes for JS -->
+                                <span id="currentVideoId" data-video-id="{{ video_playlist[0].id }}" style="display: none"></span>
+                                <span id="hasNotes" data-has-notes="{% if video_playlist[0].notes_file_path %}true{% else %}false{% endif %}" style="display: none"></span>
+                                <span id="hasTranscript" data-has-transcript="{% if video_playlist[0].transcript_file_path %}true{% else %}false{% endif %}" style="display: none"></span>
+
+                                <!-- VIP Button 1: AI Notes Generator/Download -->
+                                {% if video_playlist[0].notes_file_path %}
+                                <button id="generateNotesBtn" class="vip-download-btn notes-btn" style="display: none">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-robot"></i>
+                                    <span>Generate AI Notes</span>
+                                </button>
+                                <a href="{{ url_for('download_video_notes', video_id=video_playlist[0].id) }}" id="notesBtn" class="vip-download-btn notes-btn" target="_blank">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Download Notes</span>
+                                </a>
+                                {% else %}
+                                <button id="generateNotesBtn" class="vip-download-btn notes-btn" onclick="generateNotes({{ video_playlist[0].id }})">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-robot"></i>
+                                    <span>Generate AI Notes</span>
+                                </button>
+                                <a href="#" id="notesBtn" class="vip-download-btn notes-btn" target="_blank" style="display: none">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Download Notes</span>
+                                </a>
+                                {% endif %}
+
+                                <!-- VIP Button 2: Student Notes Generator -->
+                                <button id="openStudentNotesBtn" class="vip-download-btn transcript-btn" onclick="openStudentNotesModal()">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-pen-fancy"></i>
+                                    <span>Create Study Notes</span>
+                                </button>
+
+                                <!-- VIP Button 3: Download Video -->
+                                <a href="javascript:void(0)" id="videoDownloadBtn" class="vip-download-btn video-btn" onclick="handleVideoDownload(event)">
+                                    <div class="btn-glow"></div>
+                                    <i class="fas fa-video"></i>
+                                    <span>Video Download</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Playlist Sidebar -->
+                    <div class="playlist-sidebar">
+                        <div class="playlist-header">
+                            <h4><i class="fas fa-list"></i> Playlist</h4>
+                            <span class="playlist-count">1 / {{ video_playlist|length }}</span>
+                        </div>
+                        <div class="playlist-items">
+                            {% for video in video_playlist %}
+                            <div class="playlist-item {% if loop.first %}active{% endif %}"
+                                 data-video-url="{{ video.video_url }}"
+                                 data-video-title="{{ video.title }}"
+                                 data-video-description="{{ video.description or '' }}"
+                                 data-video-id="{{ video.id }}"
+                                 data-has-notes="{% if video.notes_file_path %}true{% else %}false{% endif %}"
+                                 data-has-transcript="{% if video.transcript_file_path %}true{% else %}false{% endif %}"
+                                 data-index="{{ loop.index }}"
+                                 onclick="playVideo(this)">
+                                <div class="playlist-item-number">{{ loop.index }}</div>
+                                <div class="playlist-item-content">
+                                    <h5>{{ video.title }}</h5>
+                                    <div class="playlist-item-meta">
+                                        {% if video.duration %}
+                                        <span><i class="fas fa-clock"></i> {{ video.duration }}</span>
+                                        {% endif %}
+                                        {% if video.notes_file_path %}
+                                        <span><i class="fas fa-file-alt"></i> Notes</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="playlist-item-icon">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🎥</div>
+                    <h3>NO VIDEOS YET</h3>
+                    <p>Your instructor will upload video lectures soon</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Course Resources -->
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">📚</span>
+                    COURSE MATERIALS
+                </h2>
+                <div class="header-badge">{{ resources|length }} Files</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if resources %}
+                <div class="resources-list">
+                    {% for resource in resources %}
+                    <div class="resource-item">
+                        <div class="resource-icon">
+                            {% if resource.resource_type == 'pdf' %}📄
+                            {% elif resource.resource_type == 'video' %}🎥
+                            {% elif resource.resource_type == 'doc' %}📝
+                            {% else %}📎{% endif %}
+                        </div>
+                        <div class="resource-info">
+                            <h4>{{ resource.title }}</h4>
+                            <p class="resource-desc">{{ resource.description if resource.description else 'No description' }}</p>
+                            <div class="resource-meta">
+                                <span>Type: {{ resource.resource_type|upper }}</span>
+                                <span>•</span>
+                                <span>{{ resource.upload_date[:10] if resource.upload_date else 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ resource.file_path }}" download class="resource-download">
+                            <span>⬇️</span>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <p>No course materials uploaded yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Meeting Links -->
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">🎯</span>
+                    LIVE SESSIONS
+                </h2>
+                <div class="header-badge">{{ meeting_links|length }}</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if meeting_links %}
+                <div class="meetings-list">
+                    {% for meeting in meeting_links %}
+                    <div class="meeting-card">
+                        <div class="meeting-status">
+                            <span class="status-dot pulse"></span>
+                            ACTIVE
+                        </div>
+                        <h4 class="meeting-title">{{ meeting.title }}</h4>
+                        {% if meeting.description %}
+                        <p class="meeting-desc">{{ meeting.description }}</p>
+                        {% endif %}
+                        <div class="meeting-time">
+                            {% if meeting.meeting_time %}
+                            <span>🕐</span>
+                            <span>{{ meeting.meeting_time }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{{ meeting.meeting_link }}" target="_blank" class="meeting-join-btn">
+                            <span>JOIN SESSION</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <p>No live sessions scheduled</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quizzes & Assignments Section -->
+        <div class="cyber-panel full-width">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">📝</span>
+                    QUIZZES & ASSIGNMENTS
+                </h2>
+                <div class="header-badge">{{ quizzes|length }} Available</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if quizzes %}
+                <div class="quizzes-grid">
+                    {% for quiz in quizzes %}
+                    <div class="quiz-card">
+                        <div class="quiz-card-header">
+                            <div class="quiz-icon">
+                                {% if quiz.assignment_type == 'quiz' %}🎯
+                                {% elif quiz.assignment_type == 'mcq' %}✅
+                                {% else %}📋{% endif %}
+                            </div>
+                            <div class="quiz-type-badge">{{ quiz.assignment_type|upper }}</div>
+                        </div>
+                        
+                        <h3 class="quiz-title">{{ quiz.title }}</h3>
+                        
+                        <div class="quiz-meta-info">
+                            {% if quiz.total_points %}
+                            <div class="meta-row">
+                                <span class="meta-label">Points:</span>
+                                <span class="meta-value">{{ quiz.total_points }}</span>
+                            </div>
+                            {% endif %}
+                            {% if quiz.due_date %}
+                            <div class="meta-row">
+                                <span class="meta-label">Due:</span>
+                                <span class="meta-value">{{ quiz.due_date[:10] }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        {% if quiz.grade is not none %}
+                        <!-- Already submitted -->
+                        <div class="quiz-status submitted">
+                            <div class="status-badge success">
+                                <i class="fas fa-check-circle"></i>
+                                SUBMITTED
+                            </div>
+                            <div class="grade-display">
+                                <span class="grade-score">{{ quiz.grade }}%</span>
+                                <span class="grade-label">Your Score</span>
+                            </div>
+                            {% if quiz.submitted_at %}
+                            <div class="submission-date">
+                                Submitted: {{ quiz.submitted_at[:10] }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('student_take_quiz', quiz_id=quiz.id) }}" class="quiz-action-btn view-btn">
+                            <i class="fas fa-eye"></i>
+                            <span>View Submission</span>
+                        </a>
+                        {% else %}
+                        <!-- Not yet attempted -->
+                        <div class="quiz-status pending">
+                            <div class="status-badge warning">
+                                <i class="fas fa-clock"></i>
+                                PENDING
+                            </div>
+                            <p class="pending-text">Not attempted yet</p>
+                        </div>
+                        <a href="{{ url_for('student_take_quiz', quiz_id=quiz.id) }}" class="quiz-action-btn attempt-btn">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Start Quiz</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <h3>NO QUIZZES YET</h3>
+                    <p>Your instructor will add quizzes soon</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Assignments Section -->
+        <div class="cyber-panel full-width">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">📋</span>
+                    ASSIGNMENTS
+                </h2>
+                <div class="header-badge">{{ assignments|length }} Available</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if assignments %}
+                <div class="assignments-grid">
+                    {% for assignment in assignments %}
+                    <div class="assignment-card">
+                        <div class="assignment-card-header">
+                            <div class="assignment-icon">
+                                {% if assignment.assignment_type == 'essay' %}📝
+                                {% elif assignment.assignment_type == 'file_upload' %}📎
+                                {% elif assignment.assignment_type == 'project' %}🚀
+                                {% else %}📄{% endif %}
+                            </div>
+                            <div class="assignment-info">
+                                <h3 class="assignment-title">{{ assignment.title }}</h3>
+                                <p class="assignment-type">{{ assignment.assignment_type|replace('_', ' ')|title }}</p>
+                            </div>
+                        </div>
+                        
+                        {% if assignment.description %}
+                        <p class="assignment-description">{{ assignment.description[:120] }}{% if assignment.description|length > 120 %}...{% endif %}</p>
+                        {% endif %}
+                        
+                        <div class="assignment-meta-row">
+                            {% if assignment.due_date %}
+                            <div class="meta-item">
+                                <i class="fas fa-calendar"></i>
+                                <span>Due: {{ assignment.due_date[:10] }}</span>
+                            </div>
+                            {% endif %}
+                            {% if assignment.total_points %}
+                            <div class="meta-item">
+                                <i class="fas fa-star"></i>
+                                <span>{{ assignment.total_points }} pts</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if assignment.is_submitted %}
+                        <div class="assignment-status submitted">
+                            <div class="status-badge success">
+                                <i class="fas fa-check-circle"></i>
+                                SUBMITTED
+                            </div>
+                            <div class="submission-details">
+                                <p>Submitted: {{ assignment.submitted_at[:10] if assignment.submitted_at else 'N/A' }}</p>
+                                {% if assignment.grade %}
+                                <p class="grade-text">Grade: <strong>{{ assignment.grade }}/{{ assignment.total_points }}</strong></p>
+                                {% else %}
+                                <p class="pending-grade">⏳ Pending Instructor Review</p>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('student_submit_assignment', course_id=course.course_id, assignment_id=assignment.id) }}" class="assignment-action-btn resubmit-btn">
+                                <i class="fas fa-redo"></i>
+                                <span>Resubmit</span>
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="assignment-status pending">
+                            <div class="status-badge warning">
+                                <i class="fas fa-exclamation-circle"></i>
+                                NOT SUBMITTED
+                            </div>
+                            <p class="pending-text">Click to submit your work</p>
+                        </div>
+                        <a href="{{ url_for('student_submit_assignment', course_id=course.course_id, assignment_id=assignment.id) }}" class="assignment-action-btn submit-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Submit Assignment</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>NO ASSIGNMENTS YET</h3>
+                    <p>Your instructor will add assignments soon</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Course Description -->
+        {% if course.description %}
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">ℹ️</span>
+                    ABOUT COURSE
+                </h2>
+            </div>
+            <div class="panel-content">
+                <div class="course-description">
+                    {{ course.description }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* CYBERPUNK DARK COURSE VIEW */
+:root {
+    --cyber-black: #000000;
+    --cyber-dark: #0a0a0a;
+    --cyber-gray: #1a1a1a;
+    --cyber-border: #2a2a2a;
+    --neon-cyan: #00ffff;
+    --neon-pink: #ff00ff;
+    --neon-blue: #0080ff;
+    --neon-green: #00ff88;
+    --cyber-primary: #00d4ff;
+    --cyber-success: #00ff88;
+    --cyber-warning: #ffaa00;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--cyber-black);
+    color: #ffffff;
+    font-family: 'Rajdhani', 'Orbitron', sans-serif;
+    overflow-x: hidden;
+}
+
+.cyber-course-view {
+    position: relative;
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Animated Background */
+.cyber-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.2;
+}
+
+.grid-lines {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(var(--cyber-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyber-border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 15s linear infinite;
+}
+
+@keyframes gridMove {
+    0% { transform: perspective(400px) rotateX(50deg) translateY(0); }
+    100% { transform: perspective(400px) rotateX(50deg) translateY(40px); }
+}
+
+.scan-effect {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+    box-shadow: 0 0 15px var(--cyber-primary);
+    animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+    0%, 100% { top: 0; }
+    50% { top: 100%; }
+}
+
+/* Course Hero - Enhanced Glassmorphism */
+.course-hero {
+    position: relative;
+    z-index: 1;
+    padding: 3rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, 
+        rgba(10, 132, 255, 0.15) 0%, 
+        rgba(48, 209, 88, 0.1) 50%,
+        rgba(191, 90, 242, 0.15) 100%);
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, 
+        rgba(10, 132, 255, 0.5), 
+        rgba(48, 209, 88, 0.5), 
+        rgba(191, 90, 242, 0.5)) 1;
+    border-radius: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    animation: slideIn 0.6s ease-out, heroGlow 4s ease-in-out infinite;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+@keyframes heroGlow {
+    0%, 100% { 
+        box-shadow: 0 8px 32px rgba(10, 132, 255, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1); 
+    }
+    50% { 
+        box-shadow: 0 8px 48px rgba(48, 209, 88, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2); 
+    }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(0, 212, 255, 0.05));
+    pointer-events: none;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--cyber-border);
+    border-radius: 5px;
+    color: var(--cyber-primary);
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    transform: translateX(-5px);
+}
+
+.course-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--cyber-primary);
+    margin-bottom: 1rem;
+}
+
+.course-hero-title {
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, 
+        #FFFFFF 0%, 
+        #0A84FF 50%, 
+        #30D158 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+    animation: textGradient 4s ease infinite;
+    filter: drop-shadow(0 0 20px rgba(10, 132, 255, 0.3));
+}
+
+@keyframes textGradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.course-meta-bar {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #aaa;
+    font-size: 0.95rem;
+}
+
+.meta-icon {
+    font-size: 1.2rem;
+}
+
+.progress-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.progress-circle svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.progress-bg {
+    fill: none;
+    stroke: var(--cyber-border);
+    stroke-width: 8;
+}
+
+.progress-bar {
+    fill: none;
+    stroke: var(--cyber-primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    filter: drop-shadow(0 0 10px var(--cyber-primary));
+    transition: stroke-dashoffset 1s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--cyber-primary);
+}
+
+/* Action Bar */
+.action-bar {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.action-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: linear-gradient(135deg,
+        rgba(26, 26, 26, 0.8) 0%,
+        rgba(15, 23, 42, 0.9) 100%);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    text-decoration: none;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.6s;
+}
+
+.action-card:hover::before {
+    left: 100%;
+}
+
+.action-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 50px rgba(0, 212, 255, 0.4),
+                0 0 30px rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.5);
+}
+
+.card-forum:hover {
+    border-color: #6674ea;
+    box-shadow: 0 10px 40px rgba(102, 116, 234, 0.3);
+}
+
+.card-ai:hover {
+    border-color: var(--cyber-success);
+    box-shadow: 0 10px 40px rgba(0, 255, 136, 0.3);
+}
+
+.card-messages:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+}
+
+.card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.action-card:hover .card-glow {
+    opacity: 1;
+}
+
+.action-icon {
+    font-size: 3rem;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.action-info h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    color: #fff;
+}
+
+.action-info p {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.action-arrow {
+    margin-left: auto;
+    font-size: 1.5rem;
+    color: var(--cyber-primary);
+}
+
+.ai-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.3rem 0.7rem;
+    background: linear-gradient(135deg, var(--cyber-success), var(--neon-cyan));
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--cyber-black);
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px var(--cyber-success); }
+    50% { box-shadow: 0 0 20px var(--cyber-success); }
+}
+
+/* Content Grid */
+.content-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cyber Panel - Modern Glassmorphism */
+.cyber-panel {
+    background: linear-gradient(135deg,
+        rgba(26, 26, 26, 0.7) 0%,
+        rgba(15, 23, 42, 0.85) 100%);
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, 
+        rgba(10, 132, 255, 0.3), 
+        rgba(48, 209, 88, 0.3)) 1;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.cyber-panel:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.panel-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg,
+        rgba(10, 132, 255, 0.08) 0%,
+        rgba(26, 26, 26, 0.6) 50%,
+        rgba(48, 209, 88, 0.08) 100%);
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg, 
+        rgba(10, 132, 255, 0.4), 
+        rgba(48, 209, 88, 0.4)) 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.panel-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(10, 132, 255, 0.1), transparent);
+    animation: headerShine 3s ease-in-out infinite;
+}
+
+@keyframes headerShine {
+    0%, 100% { left: -100%; }
+    50% { left: 100%; }
+}
+
+.panel-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--cyber-primary);
+}
+
+.header-badge {
+    padding: 0.5rem 1rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--cyber-primary);
+}
+
+.panel-content {
+    padding: 2rem;
+}
+
+/* Video Grid */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.video-card {
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--cyber-primary);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+}
+
+.video-thumbnail {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: var(--cyber-black);
+    overflow: hidden;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--cyber-dark), var(--cyber-gray));
+}
+
+.play-icon {
+    font-size: 4rem;
+    color: var(--cyber-primary);
+    opacity: 0.5;
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 0.3rem 0.6rem;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.video-card:hover .video-overlay {
+    opacity: 1;
+}
+
+.play-btn {
+    padding: 1rem 2rem;
+    background: var(--cyber-primary);
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 5px;
+    box-shadow: 0 0 20px var(--cyber-primary);
+    transition: all 0.3s ease;
+}
+
+.play-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px var(--cyber-primary);
+}
+
+.video-info {
+    padding: 1.5rem;
+}
+
+.video-number {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cyber-primary);
+    margin-bottom: 0.75rem;
+}
+
+.video-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #fff;
+}
+
+.video-desc {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+/* Video Downloads - AI Notes & Transcripts */
+.video-downloads {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.download-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, var(--cyber-success), var(--neon-cyan));
+    border: none;
+    border-radius: 5px;
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 25px rgba(0, 255, 136, 0.5);
+}
+
+.btn-notes {
+    background: linear-gradient(135deg, #00ff88, #00d4ff);
+}
+
+.btn-transcript {
+    background: linear-gradient(135deg, #0080ff, #00ffff);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.download-btn:hover .btn-shine {
+    left: 100%;
+}
+
+.video-meta {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cyber-border);
+}
+
+.meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Resources List */
+.resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.resource-icon {
+    font-size: 2rem;
+}
+
+.resource-info {
+    flex: 1;
+}
+
+.resource-info h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.resource-desc {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.resource-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.resource-download {
+    padding: 1rem;
+    background: var(--cyber-primary);
+    border-radius: 5px;
+    font-size: 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.resource-download:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--cyber-primary);
+}
+
+/* Meetings List */
+.meetings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.meeting-card {
+    padding: 1.5rem;
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.meeting-card:hover {
+    border-color: var(--cyber-success);
+    box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2);
+}
+
+.meeting-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 255, 136, 0.2);
+    border: 1px solid var(--cyber-success);
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cyber-success);
+    margin-bottom: 1rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyber-success);
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+}
+
+.meeting-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: #fff;
+}
+
+.meeting-desc {
+    color: #aaa;
+    margin-bottom: 1rem;
+}
+
+.meeting-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #888;
+    margin-bottom: 1rem;
+}
+
+.meeting-join-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--cyber-success);
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.meeting-join-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
+}
+
+.btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.meeting-join-btn:hover .btn-glow {
+    left: 100%;
+}
+
+/* Course Description */
+.course-description {
+    color: #aaa;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+/* Quizzes Grid & Assignments Grid */
+.quizzes-grid, .assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.quiz-card {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(0, 255, 136, 0.05));
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.quiz-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyber-primary), var(--cyber-success));
+}
+
+.quiz-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    border-color: var(--cyber-primary);
+}
+
+.quiz-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quiz-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.quiz-type-badge {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--cyber-primary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.quiz-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.quiz-meta-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.meta-label {
+    color: #888;
+    font-weight: 500;
+}
+
+.meta-value {
+    color: var(--cyber-primary);
+    font-weight: 700;
+}
+
+.quiz-status {
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.quiz-status.submitted {
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.quiz-status.pending {
+    background: rgba(255, 170, 0, 0.1);
+    border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.status-badge.success {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--cyber-success);
+}
+
+.status-badge.warning {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--cyber-warning);
+}
+
+.grade-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.grade-score {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--cyber-success);
+    text-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+}
+
+.grade-label {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.submission-date {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.pending-text {
+    color: #888;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Assignment Card Styling */
+.assignment-card {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(0, 212, 255, 0.05));
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 15px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.assignment-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #a855f7, #00d4ff);
+}
+
+.assignment-card:hover {
+    transform: translateY(-5px);
+    border-color: #a855f7;
+    box-shadow: 0 10px 40px rgba(168, 85, 247, 0.3);
+}
+
+.assignment-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.assignment-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.assignment-info {
+    flex: 1;
+}
+
+.assignment-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.assignment-type {
+    font-size: 0.85rem;
+    color: #a855f7;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.assignment-description {
+    color: #aaa;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.assignment-meta-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.assignment-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.assignment-status .submission-details {
+    padding: 0.75rem;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.assignment-status .grade-text {
+    color: #22c55e;
+    margin-top: 0.5rem;
+}
+
+.assignment-status .pending-grade {
+    color: #ffaa00;
+    margin-top: 0.5rem;
+}
+
+.assignment-status .pending-text {
+    color: #aaa;
+}
+
+.quiz-action-btn, .assignment-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-btn, .attempt-btn {
+    background: var(--cyber-primary);
+    color: var(--cyber-black);
+    border: none;
+}
+
+.attempt-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+}
+
+.resubmit-btn, .view-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--cyber-primary);
+    border: 1px solid var(--cyber-primary);
+}
+
+.view-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    filter: grayscale(1) opacity(0.5);
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    color: #666;
+}
+
+.empty-state p {
+    color: #555;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .course-hero {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .course-hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .action-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* Video Player Container - Advanced Player */
+.video-player-container {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 1.5rem;
+    background: var(--cyber-dark);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border: 1px solid var(--cyber-border);
+}
+
+.video-player-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.video-player {
+    background: var(--cyber-black);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    padding-top: 56.25%;
+    min-height: 400px;
+    border: 1px solid var(--cyber-border);
+}
+
+.video-player iframe,
+.video-player video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.video-player-info h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--cyber-primary);
+    font-weight: 700;
+}
+
+.video-player-info p {
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* VIP Download Buttons */
+.video-actions-btns {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.vip-download-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--cyber-success), var(--neon-cyan));
+    border: none;
+    border-radius: 8px;
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.vip-download-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 255, 136, 0.5);
+}
+
+.vip-download-btn.notes-btn {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    box-shadow: 0 0 20px rgba(39, 174, 96, 0.3);
+}
+
+.vip-download-btn.notes-btn:hover {
+    box-shadow: 0 8px 30px rgba(39, 174, 96, 0.5);
+}
+
+.vip-download-btn.transcript-btn {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    box-shadow: 0 0 20px rgba(155, 89, 182, 0.3);
+    color: white;
+}
+
+.vip-download-btn.transcript-btn:hover {
+    box-shadow: 0 8px 30px rgba(155, 89, 182, 0.5);
+}
+
+.vip-download-btn.video-btn {
+    background: linear-gradient(135deg, var(--neon-pink), #ff6b88);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    color: white;
+}
+
+.vip-download-btn.video-btn:hover {
+    box-shadow: 0 8px 30px rgba(255, 0, 255, 0.5);
+}
+
+.vip-download-btn .btn-glow {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.vip-download-btn:hover .btn-glow {
+    opacity: 1;
+}
+
+/* Playlist Sidebar */
+.playlist-sidebar {
+    background: var(--cyber-gray);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
+    border: 1px solid var(--cyber-border);
+}
+
+.playlist-header {
+    padding: 1rem 1.5rem;
+    background: var(--cyber-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--cyber-border);
+}
+
+.playlist-header h4 {
+    color: var(--cyber-primary);
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.playlist-count {
+    color: #888;
+    font-size: 0.9rem;
+    background: rgba(0, 212, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    border: 1px solid var(--cyber-primary);
+}
+
+.playlist-items {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--cyber-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-item:hover {
+    background: var(--cyber-dark);
+    border-left: 3px solid var(--cyber-primary);
+}
+
+.playlist-item.active {
+    background: var(--cyber-dark);
+    border-left: 3px solid var(--cyber-primary);
+}
+
+.playlist-item-number {
+    width: 35px;
+    height: 35px;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--cyber-primary);
+    flex-shrink: 0;
+}
+
+.playlist-item.active .playlist-item-number {
+    background: var(--cyber-primary);
+    color: var(--cyber-black);
+}
+
+.playlist-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.playlist-item-content h5 {
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.playlist-item-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.playlist-item-icon {
+    color: #666;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.playlist-item.active .playlist-item-icon {
+    color: var(--cyber-primary);
+}
+
+@media (max-width: 1024px) {
+    .video-player-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .playlist-sidebar {
+        max-height: 400px;
+    }
+}
+</style>
+
+<script>
+// Global state for current video
+let currentVideoUrl = "";
+let currentVideoIdGlobal = null;
+
+// Video player functionality
+function getEmbedUrl(url) {
+    // YouTube
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        let videoId;
+        if (url.includes("youtu.be/")) {
+            videoId = url.split("youtu.be/")[1].split("?")[0];
+        } else {
+            const urlParams = new URLSearchParams(new URL(url).search);
+            videoId = urlParams.get("v");
+        }
+        return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+    }
+
+    // Vimeo
+    if (url.includes("vimeo.com")) {
+        const videoId = url.split("vimeo.com/")[1].split("?")[0];
+        return `https://player.vimeo.com/video/${videoId}`;
+    }
+
+    // Direct video links (.mp4, .webm, etc.)
+    if (url.match(/\.(mp4|webm|ogg)$/i)) {
+        return url;
+    }
+
+    // Default: use as iframe src
+    return url;
+}
+
+function playVideo(element) {
+    // Remove active class from all items
+    document.querySelectorAll(".playlist-item").forEach((item) => {
+        item.classList.remove("active");
+    });
+
+    // Add active class to clicked item
+    element.classList.add("active");
+
+    // Get video data
+    const videoUrl = element.dataset.videoUrl;
+    const videoTitle = element.dataset.videoTitle;
+    const videoDescription = element.dataset.videoDescription;
+    const videoId = element.dataset.videoId;
+    const hasNotes = element.dataset.hasNotes === "true";
+    const videoIndex = element.dataset.index;
+
+    // Update global state
+    currentVideoUrl = videoUrl;
+    currentVideoIdGlobal = videoId;
+
+    // Update playlist counter
+    const playlistCount = document.querySelector(".playlist-count");
+    const totalVideos = document.querySelectorAll(".playlist-item").length;
+    playlistCount.textContent = `${videoIndex} / ${totalVideos}`;
+
+    // Update video player info
+    document.getElementById("currentVideoTitle").textContent = videoTitle;
+    document.getElementById("currentVideoDescription").textContent = videoDescription;
+    document.getElementById("currentVideoId").dataset.videoId = videoId;
+
+    // Update action buttons
+    const notesBtn = document.getElementById("notesBtn");
+    const generateNotesBtn = document.getElementById("generateNotesBtn");
+
+    if (hasNotes) {
+        if (generateNotesBtn) generateNotesBtn.style.display = "none";
+        if (notesBtn) {
+            notesBtn.href = `/download-notes/${videoId}`;
+            notesBtn.style.display = "inline-flex";
+        }
+    } else {
+        if (generateNotesBtn) {
+            generateNotesBtn.setAttribute("onclick", `generateNotes(${videoId})`);
+            generateNotesBtn.style.display = "inline-flex";
+            generateNotesBtn.disabled = false;
+            generateNotesBtn.innerHTML = '<div class="btn-glow"></div><i class="fas fa-robot"></i><span>Generate AI Notes</span>';
+        }
+        if (notesBtn) notesBtn.style.display = "none";
+    }
+
+    // Load video in player
+    const videoPlayer = document.getElementById("videoPlayer");
+    const embedUrl = getEmbedUrl(videoUrl);
+
+    if (videoUrl.match(/\.(mp4|webm|ogg)$/i)) {
+        // Direct video file
+        videoPlayer.innerHTML = `
+            <video controls>
+                <source src="${embedUrl}" type="video/${videoUrl.split(".").pop()}">
+                Your browser does not support the video tag.
+            </video>
+        `;
+    } else {
+        // Embedded video (YouTube, Vimeo, etc.)
+        videoPlayer.innerHTML = `
+            <iframe src="${embedUrl}" 
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+            </iframe>
+        `;
+    }
+}
+
+function handleVideoDownload(event) {
+    event.preventDefault();
+    if (!currentVideoUrl) {
+        alert("No video selected to download");
+        return;
+    }
+    const downloaderUrl = `{{ url_for('video_downloader_home') }}?url=${encodeURIComponent(currentVideoUrl)}`;
+    window.open(downloaderUrl, "_blank");
+}
+
+async function generateNotes(videoId) {
+    const generateBtn = document.getElementById("generateNotesBtn");
+    const downloadBtn = document.getElementById("notesBtn");
+
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Generating AI Notes...</span>';
+
+    try {
+        const response = await fetch(`/generate-notes/${videoId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            generateBtn.innerHTML = '<div class="btn-glow"></div><i class="fas fa-check-circle"></i><span>Notes Generated!</span>';
+            setTimeout(() => {
+                generateBtn.style.display = "none";
+                downloadBtn.href = data.download_url;
+                downloadBtn.style.display = "inline-flex";
+            }, 1500);
+
+            const playlistItem = document.querySelector(`.playlist-item[data-video-id="${videoId}"]`);
+            if (playlistItem) {
+                playlistItem.dataset.hasNotes = "true";
+            }
+        } else {
+            throw new Error(data.error || "Failed to generate notes");
+        }
+    } catch (error) {
+        generateBtn.innerHTML = '<div class="btn-glow"></div><i class="fas fa-exclamation-circle"></i><span>Error - Try Again</span>';
+        generateBtn.disabled = false;
+        alert("Error: " + error.message);
+    }
+}
+
+function openStudentNotesModal() {
+    window.location.href = "{{ url_for('ai_notes_page', course_id=course.course_id) }}";
+}
+
+// Smooth animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate progress circle on load
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        setTimeout(() => {
+            progressBar.style.transition = 'stroke-dashoffset 1.5s ease-out';
+        }, 100);
+    }
+    
+    // Initialize first video
+    const firstVideo = document.querySelector(".playlist-item");
+    if (firstVideo) {
+        playVideo(firstVideo);
+    }
+});
+</script>
+
+{% endblock %}

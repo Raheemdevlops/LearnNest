@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+.env
+.venv
+venv/
+env/
+.DS_Store
+*.db
+uploads/
+sir_rafique/uploads/
+.replit

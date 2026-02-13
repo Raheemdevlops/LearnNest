@@ -1,0 +1,802 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-cogs"></i> Admin Dashboard</h1>
+            <p>Welcome back, {{ current_user.full_name }}! Manage the LearnNest platform.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('admin_instructors') }}" class="btn btn-primary btn-glow">
+                <i class="fas fa-chalkboard-teacher"></i> Manage Instructors
+            </a>
+            <a href="{{ url_for('admin_students') }}" class="btn btn-success btn-glow">
+                <i class="fas fa-user-graduate"></i> Manage Students
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <span class="stat-number">{{ stats.total_users }}</span>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-card success">
+            <span class="stat-number">{{ stats.total_courses }}</span>
+            <div class="stat-label">Active Courses</div>
+            <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+        </div>
+        <div class="stat-card warning">
+            <span class="stat-number">{{ stats.pending_instructors }}</span>
+            <div class="stat-label">Pending Instructors</div>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="stat-card accent">
+            <span class="stat-number">{{ stats.total_enrollments }}</span>
+            <div class="stat-label">Total Enrollments</div>
+            <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+        </div>
+        <div class="stat-card secondary">
+            <span class="stat-number">{{ stats.total_instructors }}</span>
+            <div class="stat-label">Total Instructors</div>
+            <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+        </div>
+        <div class="stat-card info">
+            <span class="stat-number">{{ stats.total_students }}</span>
+            <div class="stat-label">Total Students</div>
+            <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ stats.pending_enrollments }}</span>
+            <div class="stat-label">Pending Enrollments</div>
+            <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid">
+        <!-- Recent Enrollments -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-history"></i> Recent Enrollments
+                </h3>
+            </div>
+            <div class="card-content">
+                {% if recent_enrollments %}
+                    <div class="enrollment-list">
+                        {% for enrollment in recent_enrollments %}
+                            <div class="enrollment-item">
+                                <div class="enrollment-header">
+                                    <div class="student-info">
+                                        <div class="student-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="student-details">
+                                            <h4>{{ enrollment.student_name }}</h4>
+                                            <p class="course-name">{{ enrollment.course_title }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge {{ enrollment.status }}">
+                                        {% if enrollment.status == 'pending' %}
+                                            <i class="fas fa-clock"></i> Pending
+                                        {% elif enrollment.status == 'approved' %}
+                                            <i class="fas fa-check-circle"></i> Approved
+                                        {% elif enrollment.status == 'rejected' %}
+                                            <i class="fas fa-times-circle"></i> Rejected
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="enrollment-date">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ enrollment.enrolled_at[:19] if enrollment.enrolled_at else 'N/A' }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h3>No Recent Enrollments</h3>
+                        <p>Recent student enrollment requests will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Platform Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie"></i> Platform Overview
+                </h3>
+            </div>
+            <div class="card-content">
+                <div class="overview-stats">
+                    <div class="overview-item">
+                        <div class="overview-icon primary">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="overview-content">
+                            <h4>User Management</h4>
+                            <p>{{ stats.total_users }} total users across all roles</p>
+                            <small>Students, Instructors, and Admins</small>
+                        </div>
+                    </div>
+                    
+                    <div class="overview-item">
+                        <div class="overview-icon success">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="overview-content">
+                            <h4>Course Management</h4>
+                            <p>{{ stats.total_courses }} active courses available</p>
+                            <small>Created by approved instructors</small>
+                        </div>
+                    </div>
+                    
+                    {% if stats.pending_instructors > 0 %}
+                        <div class="overview-item">
+                            <div class="overview-icon warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="overview-content">
+                                <h4>Action Required</h4>
+                                <p>{{ stats.pending_instructors }} instructor{{ 's' if stats.pending_instructors != 1 else '' }} awaiting approval</p>
+                                <a href="{{ url_for('admin_instructors') }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-check"></i> Review Now
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3 style="grid-column: 1 / -1; color: var(--text-primary); font-size: 1.2rem; font-weight: 600; margin: 1rem 0;">Quick Actions</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; grid-column: 1 / -1;">
+            <a href="{{ url_for('admin_instructors') }}" class="quick-action-item">
+                <div class="action-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <span>Approve Instructors</span>
+            </a>
+            <a href="{{ url_for('admin_students') }}" class="quick-action-item">
+                <div class="action-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <span>Manage Students</span>
+            </a>
+            <a href="{{ url_for('admin_instructors') }}" class="quick-action-item">
+                <div class="action-icon">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <span>Manage Instructors</span>
+            </a>
+            <a href="{{ url_for('instructor_courses') }}" class="quick-action-item">
+                <div class="action-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <span>View Courses</span>
+            </a>
+            <a href="{{ url_for('instructor_enrollments') }}" class="quick-action-item">
+                <div class="action-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <span>Manage Enrollments</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+    --bg-card: #1a1a1a;
+    --bg-card-hover: #222222;
+    --border-primary: #2a2a2a;
+    --border-secondary: #333333;
+    --border-accent: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-tertiary: #808080;
+    --accent-red: #ff2e63;
+    --accent-blue: #00a8ff;
+    --accent-green: #00d8a7;
+    --accent-purple: #9d4edd;
+    --accent-orange: #ff9e00;
+    --accent-cyan: #00f5d4;
+    --accent-yellow: #ffd166;
+    --glow-red: 0 0 20px rgba(255, 46, 99, 0.4);
+    --glow-blue: 0 0 20px rgba(0, 168, 255, 0.4);
+    --glow-green: 0 0 20px rgba(0, 216, 167, 0.4);
+    --glow-purple: 0 0 20px rgba(157, 78, 221, 0.4);
+    --glow-orange: 0 0 20px rgba(255, 158, 0, 0.4);
+    --glow-yellow: 0 0 20px rgba(255, 209, 102, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.8);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.9);
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.page-container {
+    max-width: 1400px;
+    margin: 7rem auto 0;
+    padding: 2rem;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-content h1 i {
+    color: var(--accent-blue);
+    text-shadow: var(--glow-blue);
+}
+
+.header-content p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.header-actions .btn {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    color: var(--text-primary);
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-blue);
+    background: linear-gradient(135deg, #0096ff, #0077b6);
+}
+
+/* Stats Grid - Ultra Stylish Modern Design */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+    border: 2px solid rgba(10, 132, 255, 0.2);
+    border-radius: 24px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.2rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0A84FF, #60A5FA, #0A84FF);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+@keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: #0A84FF;
+    box-shadow: 0 20px 60px rgba(10, 132, 255, 0.3), 0 0 40px rgba(10, 132, 255, 0.1);
+}
+
+.stat-card.primary:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+}
+
+.stat-card.success:hover {
+    border-color: var(--accent-green);
+    box-shadow: var(--glow-green);
+}
+
+.stat-card.warning:hover {
+    border-color: var(--accent-orange);
+    box-shadow: var(--glow-orange);
+}
+
+.stat-card.accent:hover {
+    border-color: var(--accent-purple);
+    box-shadow: var(--glow-purple);
+}
+
+.stat-card.secondary:hover {
+    border-color: var(--accent-red);
+    box-shadow: var(--glow-red);
+}
+
+.stat-card.info:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    background: linear-gradient(135deg, #ffffff, #60A5FA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.stat-card.primary .stat-icon {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    box-shadow: var(--glow-blue);
+}
+
+.stat-card.success .stat-icon {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    box-shadow: var(--glow-green);
+}
+
+.stat-card.warning .stat-icon {
+    background: linear-gradient(135deg, var(--accent-orange), #e85d04);
+    box-shadow: var(--glow-orange);
+}
+
+.stat-card.accent .stat-icon {
+    background: linear-gradient(135deg, var(--accent-purple), #7b2cbf);
+    box-shadow: var(--glow-purple);
+}
+
+.stat-card.secondary .stat-icon {
+    background: linear-gradient(135deg, var(--accent-red), #c1121f);
+    box-shadow: var(--glow-red);
+}
+
+.stat-card.info .stat-icon {
+    background: linear-gradient(135deg, var(--accent-cyan), #00b4a0);
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    border-color: var(--border-secondary);
+    box-shadow: var(--shadow-xl);
+}
+
+.card-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-primary);
+    background: linear-gradient(135deg, rgba(10, 132, 255, 0.05) 0%, rgba(10, 132, 255, 0.02) 100%);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.card-title i {
+    color: var(--accent-blue);
+    text-shadow: var(--glow-blue);
+}
+
+.card-content {
+    padding: 2rem;
+}
+
+.enrollment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.enrollment-item {
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-lg);
+    transition: all 0.3s ease;
+}
+
+.enrollment-item:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(0, 168, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.enrollment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.student-details h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.course-name {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.pending {
+    background: rgba(255, 158, 0, 0.1);
+    color: var(--accent-orange);
+    border: 1px solid rgba(255, 158, 0, 0.3);
+}
+
+.status-badge.approved {
+    background: rgba(0, 216, 167, 0.1);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 216, 167, 0.3);
+}
+
+.status-badge.rejected {
+    background: rgba(255, 46, 99, 0.1);
+    color: var(--accent-red);
+    border: 1px solid rgba(255, 46, 99, 0.3);
+}
+
+.enrollment-date {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.overview-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.overview-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-lg);
+    transition: all 0.3s ease;
+}
+
+.overview-item:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(0, 168, 255, 0.2);
+}
+
+.overview-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.overview-icon.primary {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    box-shadow: var(--glow-blue);
+}
+
+.overview-icon.success {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    box-shadow: var(--glow-green);
+}
+
+.overview-icon.warning {
+    background: linear-gradient(135deg, var(--accent-orange), #e85d04);
+    box-shadow: var(--glow-orange);
+}
+
+.overview-content h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.overview-content p {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.overview-content small {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    display: block;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #FFD60A 0%, #FF9500 100%);
+    color: #1C1C1E;
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 214, 10, 0.4);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.quick-actions {
+    display: grid;
+    gap: 1rem;
+    margin-top: 3rem;
+}
+
+.quick-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-lg);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    min-height: 120px;
+}
+
+.quick-action-item:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(0, 168, 255, 0.3);
+    transform: translateY(-5px);
+}
+
+.action-icon {
+    font-size: 2rem;
+    color: var(--accent-blue);
+    text-shadow: var(--glow-blue);
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .header-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .overview-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .overview-icon {
+        align-self: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h1 {
+        font-size: 2rem;
+    }
+    
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .enrollment-item {
+        padding: 1rem;
+    }
+}
+
+</style>
+
+{% endblock %}

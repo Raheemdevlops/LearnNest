@@ -1,0 +1,615 @@
+{% extends "base.html" %}
+
+{% block title %}Course Quizzes - {{ course.title }} - LearnNest {% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-clipboard-list"></i> Course Quizzes</h1>
+            <p>{{ course.title }} ({{ course.course_code }})</p>
+        </div>
+        <div class="header-actions">
+            <button onclick="openAIQuizModal()" class="btn btn-success" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-magic"></i> AI Generate Quiz
+            </button>
+            <a href="{{ url_for('instructor_create_quiz', course_id=course.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Quiz
+            </a>
+            <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Courses
+            </a>
+        </div>
+    </div>
+    
+    <!-- Quiz Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card primary-gradient">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ quizzes|length }}</h3>
+                <p>Total Quizzes</p>
+            </div>
+        </div>
+        <div class="stat-card success-gradient">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ quizzes|sum(attribute='submission_count') }}</h3>
+                <p>Total Submissions</p>
+            </div>
+        </div>
+        <div class="stat-card warning-gradient">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ "%.1f"|format((quizzes|sum(attribute='submission_count') / quizzes|length) if quizzes|length > 0 else 0) }}</h3>
+                <p>Avg Submissions</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quizzes List -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list"></i> Quiz Management
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if quizzes %}
+                <div class="quizzes-container">
+                    {% for quiz in quizzes %}
+                        <div class="quiz-card">
+                            <div class="quiz-header">
+                                <h4>{{ quiz.title }}</h4>
+                                <div class="quiz-meta">
+                                    <span class="points">{{ quiz.max_points }} points</span>
+                                    {% if quiz.due_date %}
+                                        <span class="due-date">Due: {{ quiz.due_date[:10] }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if quiz.description %}
+                                <p class="quiz-description">{{ quiz.description }}</p>
+                            {% endif %}
+                            
+                            <div class="quiz-stats">
+                                <div class="stat">
+                                    <i class="fas fa-users text-primary"></i>
+                                    <span>{{ quiz.submission_count }} submissions</span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-calendar text-info"></i>
+                                    <span>Created {{ quiz.created_at[:10] }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-actions">
+                                <a href="{{ url_for('instructor_quiz_results', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> View Results
+                                </a>
+                                <a href="{{ url_for('instructor_edit_quiz', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{{ url_for('instructor_quiz_analytics', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-chart-bar"></i> Analytics
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list fa-3x"></i>
+                    <h3>No Quizzes Yet</h3>
+                    <p>Create your first quiz to assess student learning.</p>
+                    <a href="{{ url_for('instructor_create_quiz', course_id=course.id) }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create First Quiz
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- AI Quiz Generation Modal -->
+<div id="aiQuizModal" class="modal" style="display: none; z-index: 10000;">
+    <div class="modal-content" style="max-width: 600px; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(102, 126, 234, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; color: white; font-size: 1.5rem; font-weight: 800;">
+                <i class="fas fa-magic"></i> AI Quiz Generator
+            </h2>
+            <button onclick="closeAIQuizModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; transition: all 0.2s; opacity: 0.8;" onmouseover="this.style.opacity='1'; this.style.transform='scale(1.2)';" onmouseout="this.style.opacity='0.8'; this.style.transform='scale(1)';">&times;</button>
+        </div>
+        
+        <form id="aiQuizForm" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+                <label style="display: block; font-weight: 600; color: white; margin-bottom: 0.5rem;">
+                    Quiz Title <span style="color: #00d4ff;">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="aiQuizTitle" 
+                    placeholder="e.g., Chapter 1 Assessment, Biology Quiz 1" 
+                    style="width: 100%; padding: 0.75rem; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 10px; font-size: 1rem; transition: all 0.3s; background: rgba(255,255,255,0.05); color: white;"
+                    onfocus="this.style.borderColor='#00d4ff'; this.style.boxShadow='0 0 15px rgba(0, 212, 255, 0.3)';"
+                    onblur="this.style.borderColor='rgba(102, 126, 234, 0.3)'; this.style.boxShadow='none';"
+                />
+            </div>
+
+            <div>
+                <label style="display: block; font-weight: 600; color: white; margin-bottom: 0.5rem;">
+                    Topic/Subject <span style="color: #00d4ff;">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="aiQuizTopic" 
+                    placeholder="e.g., Photosynthesis, World War 2, Calculus" 
+                    style="width: 100%; padding: 0.75rem; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 10px; font-size: 1rem; transition: all 0.3s; background: rgba(255,255,255,0.05); color: white;"
+                    onfocus="this.style.borderColor='#00d4ff'; this.style.boxShadow='0 0 15px rgba(0, 212, 255, 0.3)';"
+                    onblur="this.style.borderColor='rgba(102, 126, 234, 0.3)'; this.style.boxShadow='none';"
+                />
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-weight: 600; color: white; margin-bottom: 0.5rem;">
+                        Number of Questions
+                    </label>
+                    <select id="aiQuizNum" style="width: 100%; padding: 0.75rem; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 10px; font-size: 1rem; background: rgba(255,255,255,0.05); color: white; transition: all 0.3s;" onchange="this.style.borderColor='#00d4ff'; setTimeout(() => { this.style.borderColor='rgba(102, 126, 234, 0.3)'; }, 300);">
+                        <option value="3" style="background: #1a1a1a; color: white;">3 Questions</option>
+                        <option value="5" selected style="background: #1a1a1a; color: white;">5 Questions</option>
+                        <option value="8" style="background: #1a1a1a; color: white;">8 Questions</option>
+                        <option value="10" style="background: #1a1a1a; color: white;">10 Questions</option>
+                        <option value="15" style="background: #1a1a1a; color: white;">15 Questions</option>
+                        <option value="20" style="background: #1a1a1a; color: white;">20 Questions</option>
+                        <option value="25" style="background: #1a1a1a; color: white;">25 Questions</option>
+                        <option value="30" style="background: #1a1a1a; color: white;">30 Questions</option>
+                        <option value="40" style="background: #1a1a1a; color: white;">40 Questions</option>
+                        <option value="50" style="background: #1a1a1a; color: white;">50 Questions</option>
+                        <option value="75" style="background: #1a1a1a; color: white;">75 Questions</option>
+                        <option value="100" style="background: #1a1a1a; color: white;">100 Questions 🚀</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; font-weight: 600; color: white; margin-bottom: 0.5rem;">
+                        Difficulty Level
+                    </label>
+                    <select id="aiQuizDifficulty" style="width: 100%; padding: 0.75rem; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 10px; font-size: 1rem; background: rgba(255,255,255,0.05); color: white; transition: all 0.3s;" onchange="this.style.borderColor='#00d4ff'; setTimeout(() => { this.style.borderColor='rgba(102, 126, 234, 0.3)'; }, 300);">
+                        <option value="easy" style="background: #1a1a1a; color: white;">Easy</option>
+                        <option value="medium" selected style="background: #1a1a1a; color: white;">Medium</option>
+                        <option value="hard" style="background: #1a1a1a; color: white;">Hard</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button 
+                    type="button"
+                    onclick="generateAIQuiz()"
+                    id="generateAIQuizBtn"
+                    style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4); position: relative; overflow: hidden;"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 30px rgba(0, 212, 255, 0.6)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(0, 212, 255, 0.4)';"
+                >
+                    <i class="fas fa-sparkles"></i> Generate Questions
+                </button>
+                <button 
+                    type="button"
+                    onclick="closeAIQuizModal()"
+                    style="flex: 0.5; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.05); color: white; border: 2px solid rgba(255,255,255,0.2); border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.4)';"
+                    onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.2)';"
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- View Generated Quiz Modal -->
+<div id="viewQuizModal" class="modal" style="display: none; z-index: 10001;">
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,252,0.98) 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid rgba(102, 126, 234, 0.2); overflow-y: auto; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; color: white; font-size: 1.5rem; font-weight: 800;">
+                Generated Quiz Preview
+            </h2>
+            <button onclick="closeViewQuizModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+        </div>
+        
+        <div id="quizPreviewContent" style="flex: 1; overflow-y: auto; margin-bottom: 1.5rem;">
+            <!-- Quiz questions will be inserted here -->
+        </div>
+        
+        <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 2px solid rgba(102, 126, 234, 0.2);">
+            <button 
+                type="button"
+                onclick="createQuizFromGenerated()"
+                id="createQuizBtn"
+                style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);"
+            >
+                <i class="fas fa-check"></i> Create Quiz
+            </button>
+            <button 
+                type="button"
+                onclick="closeViewQuizModal()"
+                style="flex: 0.5; padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.1); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s;"
+            >
+                Back
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let generatedQuestions = [];
+let courseId = {{ course.id }};
+
+function openAIQuizModal() {
+    document.getElementById('aiQuizModal').style.display = 'flex';
+    document.getElementById('aiQuizModal').style.alignItems = 'center';
+    document.getElementById('aiQuizModal').style.justifyContent = 'center';
+    document.getElementById('aiQuizModal').style.position = 'fixed';
+    document.getElementById('aiQuizModal').style.top = '0';
+    document.getElementById('aiQuizModal').style.left = '0';
+    document.getElementById('aiQuizModal').style.width = '100%';
+    document.getElementById('aiQuizModal').style.height = '100%';
+    document.getElementById('aiQuizModal').style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAIQuizModal() {
+    document.getElementById('aiQuizModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function closeViewQuizModal() {
+    document.getElementById('viewQuizModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+async function generateAIQuiz() {
+    const title = document.getElementById('aiQuizTitle').value.trim();
+    const topic = document.getElementById('aiQuizTopic').value.trim();
+    const numQuestions = document.getElementById('aiQuizNum').value;
+    const difficulty = document.getElementById('aiQuizDifficulty').value;
+    const btn = document.getElementById('generateAIQuizBtn');
+    
+    if (!title || title.length < 3) {
+        showNotification('Please enter a quiz title (minimum 3 characters)', 'error');
+        return;
+    }
+    
+    if (!topic || topic.length < 3) {
+        showNotification('Please enter a topic (minimum 3 characters)', 'error');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating & Saving...';
+    
+    try {
+        const response = await fetch('/instructor/courses/' + courseId + '/quizzes/generate-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                topic: topic,
+                num_questions: numQuestions,
+                difficulty: difficulty
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            closeAIQuizModal();
+            showNotification(data.message, 'success');
+            // Redirect to edit page where instructor can review and finalize
+            window.location.href = data.redirect_url;
+        } else {
+            showNotification(data.message || 'Failed to generate quiz', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error generating quiz: ' + error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sparkles"></i> Generate Questions';
+    }
+}
+
+function displayQuizPreview(questions, topic) {
+    const preview = document.getElementById('quizPreviewContent');
+    let html = `<h3 style="color: #08111f; margin-bottom: 1.5rem; font-weight: 700;">${topic}</h3>`;
+    
+    questions.forEach((q, idx) => {
+        html += `
+            <div style="background: rgba(102, 126, 234, 0.05); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                <h4 style="color: #08111f; margin: 0 0 1rem 0; font-weight: 700;">Q${idx + 1}. ${q.question}</h4>
+                <div style="margin-left: 1rem;">
+                    ${Object.entries(q.options).map(([letter, option]) => `
+                        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: white; border-radius: 8px; ${q.correct_answer === letter ? 'border: 2px solid #28a745; background: rgba(40, 167, 69, 0.05);' : 'border: 1px solid #e0e0e0;'}">
+                            <strong style="color: ${q.correct_answer === letter ? '#28a745' : '#667eea'};">${letter}.</strong> ${option}
+                            ${q.correct_answer === letter ? '<span style="margin-left: 0.5rem; color: #28a745; font-weight: 700;">✓ Correct</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(40, 167, 69, 0.1); border-radius: 8px; border-left: 3px solid #28a745;">
+                    <strong style="color: #28a745;">Explanation:</strong> ${q.explanation}
+                </div>
+            </div>
+        `;
+    });
+    
+    preview.innerHTML = html;
+    
+    document.getElementById('viewQuizModal').style.display = 'flex';
+    document.getElementById('viewQuizModal').style.alignItems = 'center';
+    document.getElementById('viewQuizModal').style.justifyContent = 'center';
+    document.getElementById('viewQuizModal').style.position = 'fixed';
+    document.getElementById('viewQuizModal').style.top = '0';
+    document.getElementById('viewQuizModal').style.left = '0';
+    document.getElementById('viewQuizModal').style.width = '100%';
+    document.getElementById('viewQuizModal').style.height = '100%';
+    document.getElementById('viewQuizModal').style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    document.body.style.overflow = 'hidden';
+}
+
+function createQuizFromGenerated() {
+    const quizData = {
+        title: document.getElementById('aiQuizTopic').value,
+        questions: generatedQuestions,
+        courseId: courseId
+    };
+    
+    // Store in sessionStorage and redirect to create quiz page
+    sessionStorage.setItem('generatedQuizData', JSON.stringify(quizData));
+    window.location.href = '/instructor/courses/' + courseId + '/quizzes/create';
+}
+
+// Show notification helper
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        color: white;
+        font-weight: 700;
+        z-index: 99999;
+        animation: slideIn 0.3s ease;
+        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#e74c3c' : '#3498db'};
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Click outside modal to close
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'aiQuizModal') closeAIQuizModal();
+    if (e.target.id === 'viewQuizModal') closeViewQuizModal();
+});
+</script>
+
+<style>
+.quizzes-container {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.quiz-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 2px solid transparent;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.quiz-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    transition: height 0.3s ease;
+}
+
+.quiz-card:hover::before {
+    height: 6px;
+}
+
+.quiz-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.quiz-header h4 {
+    margin: 0;
+    color: #1a202c;
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.quiz-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.points {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 10px rgba(245, 87, 108, 0.3);
+}
+
+.due-date {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.quiz-description {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.quiz-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.quiz-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+}
+
+.quiz-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    border-radius: 20px;
+    padding: 1.8rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border-radius: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card:hover::before {
+    opacity: 0.8;
+}
+
+.stat-card.primary-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card.success-gradient {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.stat-card.warning-gradient {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: rotate(10deg) scale(1.1);
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.stat-info {
+    position: relative;
+    z-index: 1;
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    letter-spacing: -0.5px;
+}
+
+.stat-info p {
+    margin: 0.3rem 0 0 0;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}

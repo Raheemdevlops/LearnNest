@@ -1,0 +1,1075 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="cyber-course-view">
+    <!-- Animated Background -->
+    <div class="cyber-bg">
+        <div class="grid-lines"></div>
+        <div class="scan-effect"></div>
+    </div>
+
+    <!-- Course Header -->
+    <div class="course-hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <a href="{{ url_for('dashboard') }}" class="back-btn">
+                <span>←</span> BACK TO DASHBOARD
+            </a>
+            <div class="course-badge">{{ course.course_code }}</div>
+            <h1 class="course-hero-title">{{ course.title }}</h1>
+            <div class="course-meta-bar">
+                <span class="meta-item">
+                    <span class="meta-icon">👨‍🏫</span>
+                    {{ course.instructor_name }}
+                </span>
+                <span class="meta-item">
+                    <span class="meta-icon">📚</span>
+                    {{ course.category if course.category else 'General' }}
+                </span>
+                <span class="meta-item">
+                    <span class="meta-icon">📅</span>
+                    Enrolled: {{ enrollment.enrolled_at[:10] if enrollment.enrolled_at else 'N/A' }}
+                </span>
+            </div>
+        </div>
+        <div class="progress-circle">
+            <svg viewBox="0 0 100 100">
+                <circle class="progress-bg" cx="50" cy="50" r="40"></circle>
+                <circle class="progress-bar" cx="50" cy="50" r="40" 
+                        style="stroke-dashoffset: {{ 251.2 - (251.2 * (enrollment.progress_percentage|default(0) / 100)) }}"></circle>
+            </svg>
+            <div class="progress-text">{{ enrollment.progress_percentage|default(0)|round|int }}%</div>
+        </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="action-bar">
+        <a href="{{ url_for('course_discussion_forum', course_id=course.course_id) }}" class="action-card card-forum">
+            <div class="card-glow"></div>
+            <div class="action-icon">💬</div>
+            <div class="action-info">
+                <h3>DISCUSSION FORUM</h3>
+                <p>Ask questions & collaborate</p>
+            </div>
+            <span class="action-arrow">→</span>
+        </a>
+
+        <a href="{{ url_for('ai_notes_page', course_id=course.course_id) }}" class="action-card card-ai">
+            <div class="card-glow"></div>
+            <div class="action-icon">🤖</div>
+            <div class="action-info">
+                <h3>AI STUDY NOTES</h3>
+                <p>Instructor's AI-generated notes</p>
+            </div>
+            <span class="action-arrow">→</span>
+            <div class="ai-badge">AI POWERED</div>
+        </a>
+
+        <a href="{{ url_for('messaging_hub') }}" class="action-card card-messages">
+            <div class="card-glow"></div>
+            <div class="action-icon">✉️</div>
+            <div class="action-info">
+                <h3>MESSAGES</h3>
+                <p>Contact instructor</p>
+            </div>
+            <span class="action-arrow">→</span>
+        </a>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Video Playlist Section -->
+        <div class="cyber-panel full-width">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">▶</span>
+                    VIDEO LECTURES
+                </h2>
+                <div class="header-badge">{{ video_playlist|length }} Videos</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if video_playlist %}
+                <div class="video-grid">
+                    {% for video in video_playlist %}
+                    <div class="video-card" data-video-id="{{ video.id }}">
+                        <div class="video-thumbnail">
+                            {% if video.thumbnail_url %}
+                            <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}">
+                            {% else %}
+                            <div class="thumbnail-placeholder">
+                                <span class="play-icon">▶</span>
+                            </div>
+                            {% endif %}
+                            {% if video.duration %}
+                            <div class="video-duration">{{ video.duration }}</div>
+                            {% endif %}
+                            <div class="video-overlay">
+                                <a href="{{ video.video_url }}" target="_blank" class="play-btn">
+                                    <span>▶ WATCH NOW</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="video-info">
+                            <div class="video-number">Lecture {{ loop.index }}</div>
+                            <h3 class="video-title">{{ video.title }}</h3>
+                            {% if video.description %}
+                            <p class="video-desc">{{ video.description[:150] }}{% if video.description|length > 150 %}...{% endif %}</p>
+                            {% endif %}
+                            
+                            <!-- AI Notes & Transcript Downloads -->
+                            <div class="video-downloads">
+                                {% if video.notes_file_path %}
+                                <a href="{{ url_for('download_video_notes', video_id=video.id) }}" class="download-btn btn-notes">
+                                    <span class="btn-icon">📄</span>
+                                    <span>AI NOTES</span>
+                                    <div class="btn-shine"></div>
+                                </a>
+                                {% endif %}
+                                
+                                {% if video.transcript_file_path %}
+                                <a href="{{ url_for('download_video_transcript', video_id=video.id) }}" class="download-btn btn-transcript">
+                                    <span class="btn-icon">📝</span>
+                                    <span>TRANSCRIPT</span>
+                                    <div class="btn-shine"></div>
+                                </a>
+                                {% endif %}
+                            </div>
+
+                            <div class="video-meta">
+                                <span class="meta-tag">
+                                    <span>📅</span>
+                                    {{ video.created_at[:10] if video.created_at else 'N/A' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🎥</div>
+                    <h3>NO VIDEOS YET</h3>
+                    <p>Your instructor will upload video lectures soon</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Course Resources -->
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">📚</span>
+                    COURSE MATERIALS
+                </h2>
+                <div class="header-badge">{{ resources|length }} Files</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if resources %}
+                <div class="resources-list">
+                    {% for resource in resources %}
+                    <div class="resource-item">
+                        <div class="resource-icon">
+                            {% if resource.resource_type == 'pdf' %}📄
+                            {% elif resource.resource_type == 'video' %}🎥
+                            {% elif resource.resource_type == 'doc' %}📝
+                            {% else %}📎{% endif %}
+                        </div>
+                        <div class="resource-info">
+                            <h4>{{ resource.title }}</h4>
+                            <p class="resource-desc">{{ resource.description if resource.description else 'No description' }}</p>
+                            <div class="resource-meta">
+                                <span>Type: {{ resource.resource_type|upper }}</span>
+                                <span>•</span>
+                                <span>{{ resource.upload_date[:10] if resource.upload_date else 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ resource.file_path }}" download class="resource-download">
+                            <span>⬇️</span>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <p>No course materials uploaded yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Meeting Links -->
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">🎯</span>
+                    LIVE SESSIONS
+                </h2>
+                <div class="header-badge">{{ meeting_links|length }}</div>
+            </div>
+            
+            <div class="panel-content">
+                {% if meeting_links %}
+                <div class="meetings-list">
+                    {% for meeting in meeting_links %}
+                    <div class="meeting-card">
+                        <div class="meeting-status">
+                            <span class="status-dot pulse"></span>
+                            ACTIVE
+                        </div>
+                        <h4 class="meeting-title">{{ meeting.title }}</h4>
+                        {% if meeting.description %}
+                        <p class="meeting-desc">{{ meeting.description }}</p>
+                        {% endif %}
+                        <div class="meeting-time">
+                            {% if meeting.meeting_time %}
+                            <span>🕐</span>
+                            <span>{{ meeting.meeting_time }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{{ meeting.meeting_link }}" target="_blank" class="meeting-join-btn">
+                            <span>JOIN SESSION</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state-small">
+                    <p>No live sessions scheduled</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Course Description -->
+        {% if course.description %}
+        <div class="cyber-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span class="title-icon">ℹ️</span>
+                    ABOUT COURSE
+                </h2>
+            </div>
+            <div class="panel-content">
+                <div class="course-description">
+                    {{ course.description }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* CYBERPUNK DARK COURSE VIEW */
+:root {
+    --cyber-black: #000000;
+    --cyber-dark: #0a0a0a;
+    --cyber-gray: #1a1a1a;
+    --cyber-border: #2a2a2a;
+    --neon-cyan: #00ffff;
+    --neon-pink: #ff00ff;
+    --neon-blue: #0080ff;
+    --neon-green: #00ff88;
+    --cyber-primary: #00d4ff;
+    --cyber-success: #00ff88;
+    --cyber-warning: #ffaa00;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--cyber-black);
+    color: #ffffff;
+    font-family: 'Rajdhani', 'Orbitron', sans-serif;
+    overflow-x: hidden;
+}
+
+.cyber-course-view {
+    position: relative;
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Animated Background */
+.cyber-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.2;
+}
+
+.grid-lines {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(var(--cyber-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyber-border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 15s linear infinite;
+}
+
+@keyframes gridMove {
+    0% { transform: perspective(400px) rotateX(50deg) translateY(0); }
+    100% { transform: perspective(400px) rotateX(50deg) translateY(40px); }
+}
+
+.scan-effect {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+    box-shadow: 0 0 15px var(--cyber-primary);
+    animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+    0%, 100% { top: 0; }
+    50% { top: 100%; }
+}
+
+/* Course Hero */
+.course-hero {
+    position: relative;
+    z-index: 1;
+    padding: 3rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, rgba(0, 128, 255, 0.1), rgba(255, 0, 255, 0.1));
+    border: 1px solid var(--cyber-border);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    animation: slideIn 0.6s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(0, 212, 255, 0.05));
+    pointer-events: none;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--cyber-border);
+    border-radius: 5px;
+    color: var(--cyber-primary);
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    transform: translateX(-5px);
+}
+
+.course-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--cyber-primary);
+    margin-bottom: 1rem;
+}
+
+.course-hero-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    background: linear-gradient(90deg, #fff, var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+}
+
+.course-meta-bar {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #aaa;
+    font-size: 0.95rem;
+}
+
+.meta-icon {
+    font-size: 1.2rem;
+}
+
+.progress-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.progress-circle svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.progress-bg {
+    fill: none;
+    stroke: var(--cyber-border);
+    stroke-width: 8;
+}
+
+.progress-bar {
+    fill: none;
+    stroke: var(--cyber-primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    filter: drop-shadow(0 0 10px var(--cyber-primary));
+    transition: stroke-dashoffset 1s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--cyber-primary);
+}
+
+/* Action Bar */
+.action-bar {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.action-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: var(--cyber-dark);
+    border: 1px solid var(--cyber-border);
+    border-radius: 10px;
+    text-decoration: none;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+}
+
+.card-forum:hover {
+    border-color: #6674ea;
+    box-shadow: 0 10px 40px rgba(102, 116, 234, 0.3);
+}
+
+.card-ai:hover {
+    border-color: var(--cyber-success);
+    box-shadow: 0 10px 40px rgba(0, 255, 136, 0.3);
+}
+
+.card-messages:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+}
+
+.card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyber-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.action-card:hover .card-glow {
+    opacity: 1;
+}
+
+.action-icon {
+    font-size: 3rem;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.action-info h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    color: #fff;
+}
+
+.action-info p {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.action-arrow {
+    margin-left: auto;
+    font-size: 1.5rem;
+    color: var(--cyber-primary);
+}
+
+.ai-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.3rem 0.7rem;
+    background: linear-gradient(135deg, var(--cyber-success), var(--neon-cyan));
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--cyber-black);
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px var(--cyber-success); }
+    50% { box-shadow: 0 0 20px var(--cyber-success); }
+}
+
+/* Content Grid */
+.content-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cyber Panel */
+.cyber-panel {
+    background: var(--cyber-dark);
+    border: 1px solid var(--cyber-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.panel-header {
+    padding: 1.5rem 2rem;
+    background: var(--cyber-gray);
+    border-bottom: 1px solid var(--cyber-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--cyber-primary);
+}
+
+.header-badge {
+    padding: 0.5rem 1rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--cyber-primary);
+}
+
+.panel-content {
+    padding: 2rem;
+}
+
+/* Video Grid */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.video-card {
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--cyber-primary);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+}
+
+.video-thumbnail {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: var(--cyber-black);
+    overflow: hidden;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--cyber-dark), var(--cyber-gray));
+}
+
+.play-icon {
+    font-size: 4rem;
+    color: var(--cyber-primary);
+    opacity: 0.5;
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 0.3rem 0.6rem;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.video-card:hover .video-overlay {
+    opacity: 1;
+}
+
+.play-btn {
+    padding: 1rem 2rem;
+    background: var(--cyber-primary);
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 5px;
+    box-shadow: 0 0 20px var(--cyber-primary);
+    transition: all 0.3s ease;
+}
+
+.play-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px var(--cyber-primary);
+}
+
+.video-info {
+    padding: 1.5rem;
+}
+
+.video-number {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--cyber-primary);
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cyber-primary);
+    margin-bottom: 0.75rem;
+}
+
+.video-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #fff;
+}
+
+.video-desc {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+/* Video Downloads - AI Notes & Transcripts */
+.video-downloads {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.download-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, var(--cyber-success), var(--neon-cyan));
+    border: none;
+    border-radius: 5px;
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 25px rgba(0, 255, 136, 0.5);
+}
+
+.btn-notes {
+    background: linear-gradient(135deg, #00ff88, #00d4ff);
+}
+
+.btn-transcript {
+    background: linear-gradient(135deg, #0080ff, #00ffff);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.download-btn:hover .btn-shine {
+    left: 100%;
+}
+
+.video-meta {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cyber-border);
+}
+
+.meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Resources List */
+.resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+    border-color: var(--cyber-primary);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.resource-icon {
+    font-size: 2rem;
+}
+
+.resource-info {
+    flex: 1;
+}
+
+.resource-info h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.resource-desc {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.resource-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.resource-download {
+    padding: 1rem;
+    background: var(--cyber-primary);
+    border-radius: 5px;
+    font-size: 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.resource-download:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--cyber-primary);
+}
+
+/* Meetings List */
+.meetings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.meeting-card {
+    padding: 1.5rem;
+    background: var(--cyber-gray);
+    border: 1px solid var(--cyber-border);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.meeting-card:hover {
+    border-color: var(--cyber-success);
+    box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2);
+}
+
+.meeting-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 255, 136, 0.2);
+    border: 1px solid var(--cyber-success);
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cyber-success);
+    margin-bottom: 1rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyber-success);
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+}
+
+.meeting-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: #fff;
+}
+
+.meeting-desc {
+    color: #aaa;
+    margin-bottom: 1rem;
+}
+
+.meeting-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #888;
+    margin-bottom: 1rem;
+}
+
+.meeting-join-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--cyber-success);
+    color: var(--cyber-black);
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.meeting-join-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
+}
+
+.btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.meeting-join-btn:hover .btn-glow {
+    left: 100%;
+}
+
+/* Course Description */
+.course-description {
+    color: #aaa;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    filter: grayscale(1) opacity(0.5);
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    color: #666;
+}
+
+.empty-state p {
+    color: #555;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .course-hero {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .course-hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .action-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Smooth animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate progress circle on load
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        setTimeout(() => {
+            progressBar.style.transition = 'stroke-dashoffset 1.5s ease-out';
+        }, 100);
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,955 @@
+{% extends "base.html" %}
+
+{% block title %}Create Course - LearnNest {% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-plus-circle"></i> Create New Course</h1>
+            <p>Add a new course to your profile</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Courses
+            </a>
+        </div>
+    </div>
+    
+    <div class="form-container">
+        <form method="POST" class="course-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Course Information</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="course_code">Course Code *</label>
+                        <input type="text" id="course_code" name="course_code" required 
+                               placeholder="e.g., CS101" maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="title">Course Title *</label>
+                        <input type="text" id="title" name="title" required 
+                               placeholder="e.g., Introduction to Python">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" 
+                              placeholder="Brief overview of what this course covers..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">Category (Optional)</label>
+                    <input type="text" id="category" name="category" 
+                           placeholder="e.g., Programming, Mathematics, etc.">
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-file-alt"></i> Course Details</h3>
+                
+                <div class="form-group">
+                    <label for="syllabus">Syllabus (Optional)</label>
+                    <textarea id="syllabus" name="syllabus" rows="4" 
+                              placeholder="Detailed course syllabus and objectives..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="max_students">Max Students (Optional)</label>
+                        <input type="number" id="max_students" name="max_students" 
+                               value="50" min="1" max="500">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="start_date">Start Date (Optional)</label>
+                        <input type="date" id="start_date" name="start_date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="end_date">End Date (Optional)</label>
+                        <input type="date" id="end_date" name="end_date">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-key"></i> Enrollment Settings</h3>
+                
+                <div class="form-group">
+                    <label for="enrollment_key">Enrollment Key *</label>
+                    <input type="password" id="enrollment_key" name="enrollment_key" required 
+                           placeholder="Create a secure key for students to enroll (min 6 characters)" minlength="6">
+                    <small>Students will need this key to enroll in your course. Choose something secure but memorable.</small>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> Create Course
+                </button>
+                <a href="{{ url_for('instructor_courses') }}" 
+                   class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- AI Assistant Tip -->
+    <div class="tip-card">
+        <div class="tip-icon">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="tip-content">
+            <h4>🤖 AI-Powered Grading</h4>
+            <p>Once students submit their answers, our AI assistant will help grade them automatically and provide detailed feedback. You can always review and adjust the grades manually.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --purple-50: #faf5ff;
+    --purple-100: #f3e8ff;
+    --purple-200: #e9d5ff;
+    --purple-300: #d8b4fe;
+    --purple-400: #c084fc;
+    --purple-500: #757277FF;
+    --purple-600: #9333ea;
+    --purple-700: #8A7BA5FF;
+    --purple-800: #C7BDCFFF;
+    --purple-900: #6F488DFF;
+    --white: #ffffff;
+    --cream: #faf7ff;
+    --neutral-50: #fafafa;
+    --neutral-100: #f5f5f5;
+    --neutral-200: #e5e5e5;
+    --neutral-300: #d4d4d4;
+    --neutral-400: #a3a3a3;
+    --neutral-500: #737373;
+    --neutral-600: #525252;
+    --neutral-700: #404040;
+    --neutral-800: #262626;
+    --neutral-900: #171717;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --gradient-primary: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    --gradient-secondary: linear-gradient(135deg, var(--purple-400) 0%, var(--purple-700) 100%);
+    --gradient-soft: linear-gradient(135deg, var(--purple-100) 0%, var(--white) 100%);
+}
+
+.page-container {
+    background: var(--gradient-soft);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: var(--white);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--purple-100);
+}
+
+.header-content h1 {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--purple-800);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-content h1 i {
+    color: var(--purple-500);
+}
+
+.header-content p {
+    color: var(--purple-600);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.quiz-form {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.form-container {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--purple-100);
+    margin-bottom: 2rem;
+}
+
+.form-section {
+    background: var(--purple-50);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--purple-200);
+    transition: all 0.3s ease;
+}
+
+.form-section:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.form-section h3 {
+    color: var(--purple-800);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.5rem;
+}
+
+.form-section h3 i {
+    color: var(--purple-500);
+    transition: transform 0.3s ease;
+}
+
+.form-section:hover h3 i {
+    transform: scale(1.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--purple-700);
+    font-size: 1rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--purple-200);
+    border-radius: 12px;
+    background: var(--white);
+    color: var(--purple-900);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--purple-300);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15);
+    background: var(--white);
+    transform: translateY(-2px);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--purple-200);
+}
+
+.btn {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(168, 85, 247, 0.4);
+}
+
+.btn-secondary {
+    background: var(--white);
+    color: var(--purple-700);
+    border: 2px solid var(--purple-300);
+}
+
+.btn-secondary:hover {
+    background: var(--purple-50);
+    border-color: var(--purple-500);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: var(--white);
+}
+
+.btn-ai {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.btn-ai:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.5);
+}
+
+.btn-ai i {
+    margin-right: 0.5rem;
+}
+
+.ai-status-message {
+    display: inline-block;
+    margin-left: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.btn-sm {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-lg {
+    padding: 1.25rem 2.5rem;
+    font-size: 1.2rem;
+    border-radius: 16px;
+}
+
+.tip-card {
+    background: var(--purple-50);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-top: 2rem;
+    border: 1px solid var(--purple-200);
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    transition: all 0.3s ease;
+}
+
+.tip-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.tip-icon {
+    color: var(--purple-500);
+    font-size: 2rem;
+    flex-shrink: 0;
+    background: var(--white);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+}
+
+.tip-content h4 {
+    margin: 0 0 1rem 0;
+    color: var(--purple-800);
+    font-size: 1.3rem;
+}
+
+.tip-content p {
+    margin: 0;
+    color: var(--purple-600);
+    line-height: 1.6;
+    font-size: 1.05rem;
+}
+
+.question-item {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--purple-200);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.question-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.question-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.question-header h4 {
+    color: var(--purple-800);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.4rem;
+}
+
+.question-header h4::before {
+    content: '❓';
+    font-size: 1.4rem;
+    color: var(--purple-500);
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.option-group {
+    background: var(--purple-50);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.option-group:hover {
+    border-color: var(--purple-400);
+    background: var(--purple-100);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.option-letter {
+    background: var(--gradient-primary);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    transition: all 0.3s ease;
+}
+
+.option-group:hover .option-letter {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+}
+
+.option-label input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--purple-500);
+    transform: scale(1.2);
+}
+
+.option-group textarea {
+    width: 100%;
+    border: 1px solid var(--purple-200);
+    border-radius: 12px;
+    padding: 1rem;
+    background: var(--white);
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 80px;
+    transition: all 0.3s ease;
+}
+
+.option-group textarea:focus {
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+}
+
+.question-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding: 2rem;
+    background: var(--purple-50);
+    border-radius: 16px;
+    border: 1px solid var(--purple-200);
+}
+
+.question-counter {
+    color: var(--purple-700);
+    font-weight: 700;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.question-counter::before {
+    content: '📊';
+    font-size: 1.4rem;
+}
+
+.remove-question {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.question-item {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .header-content h1 {
+        font-size: 1.8rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .tip-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .options-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .question-controls {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .form-container {
+        padding: 1.5rem;
+    }
+    
+    .form-section {
+        padding: 1.5rem;
+    }
+    
+    .question-item {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        padding: 1rem;
+    }
+    
+    .header-content h1 {
+        font-size: 1.5rem;
+    }
+    
+    .form-container {
+        padding: 1rem;
+    }
+    
+    .form-section {
+        padding: 1rem;
+    }
+    
+    .question-item {
+        padding: 1rem;
+    }
+    
+    .options-grid {
+        gap: 1rem;
+    }
+    
+    .option-group {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+// Global variables
+let questionCount = 1;
+
+function addQuestion() {
+    questionCount++;
+    const container = document.getElementById('questions-container');
+    
+    const questionHtml = `
+        <div class="question-item" data-question="${questionCount}">
+            <div class="question-header">
+                <h4>Question ${questionCount}</h4>
+                <button type="button" class="btn btn-danger btn-sm remove-question" onclick="removeQuestion(${questionCount})">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label for="question_${questionCount}_text">Question Text *</label>
+                <textarea name="questions[${questionCount}][text]" id="question_${questionCount}_text" rows="3" required
+                          placeholder="Enter your multiple choice question here..."></textarea>
+                <button type="button" class="btn btn-ai btn-sm" onclick="generateAIOptions(${questionCount})" style="margin-top: 10px;">
+                    <i class="fas fa-magic"></i> Generate AI Options & Correct Answer
+                </button>
+                <span id="ai-status-${questionCount}" class="ai-status-message"></span>
+            </div>
+            
+            <div class="options-grid">
+                <div class="option-group">
+                    <label class="option-label">
+                        <input type="radio" name="questions[${questionCount}][correct]" value="A" required>
+                        <span class="option-letter">A</span>
+                    </label>
+                    <textarea name="questions[${questionCount}][option_a]" placeholder="Option A" rows="2" required></textarea>
+                </div>
+                
+                <div class="option-group">
+                    <label class="option-label">
+                        <input type="radio" name="questions[${questionCount}][correct]" value="B" required>
+                        <span class="option-letter">B</span>
+                    </label>
+                    <textarea name="questions[${questionCount}][option_b]" placeholder="Option B" rows="2" required></textarea>
+                </div>
+                
+                <div class="option-group">
+                    <label class="option-label">
+                        <input type="radio" name="questions[${questionCount}][correct]" value="C" required>
+                        <span class="option-letter">C</span>
+                    </label>
+                    <textarea name="questions[${questionCount}][option_c]" placeholder="Option C" rows="2" required></textarea>
+                </div>
+                
+                <div class="option-group">
+                    <label class="option-label">
+                        <input type="radio" name="questions[${questionCount}][correct]" value="D" required>
+                        <span class="option-letter">D</span>
+                    </label>
+                    <textarea name="questions[${questionCount}][option_d]" placeholder="Option D" rows="2" required></textarea>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="question_${questionCount}_explanation">Explanation (Optional)</label>
+                <textarea name="questions[${questionCount}][explanation]" id="question_${questionCount}_explanation" rows="2"
+                          placeholder="Provide an explanation for the correct answer..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="question_${questionCount}_points">Points</label>
+                <input type="number" name="questions[${questionCount}][points]" id="question_${questionCount}_points" 
+                       value="1" min="1" max="10" required>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', questionHtml);
+    updateQuestionCount();
+    
+    // Scroll to the new question
+    const newQuestion = container.lastElementChild;
+    newQuestion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function removeQuestion(questionNum) {
+    if (questionCount <= 1) {
+        alert('You need at least one question!');
+        return;
+    }
+    
+    const questionElement = document.querySelector(`[data-question="${questionNum}"]`);
+    if (questionElement) {
+        questionElement.remove();
+        questionCount--;
+        updateQuestionCount();
+        renumberQuestions();
+    }
+}
+
+function updateQuestionCount() {
+    document.getElementById('question-count').textContent = document.querySelectorAll('.question-item').length;
+}
+
+async function generateAIOptions(questionNum) {
+    const questionTextarea = document.getElementById(`question_${questionNum}_text`);
+    const questionText = questionTextarea.value.trim();
+    const statusSpan = document.getElementById(`ai-status-${questionNum}`);
+    
+    if (!questionText) {
+        alert('Please enter the question text first before generating AI options.');
+        return;
+    }
+    
+    // Show loading status
+    statusSpan.textContent = '🤖 Generating AI options...';
+    statusSpan.style.color = '#667eea';
+    
+    try {
+        const response = await fetch('/api/generate-mcq-options', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: questionText,
+                context: document.getElementById('title')?.value || ''
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.options) {
+            // Fill in the options
+            const optionFields = document.querySelectorAll(`[name="questions[${questionNum}][option_a]"], [name="questions[${questionNum}][option_b]"], [name="questions[${questionNum}][option_c]"], [name="questions[${questionNum}][option_d]"]`);
+            
+            optionFields[0].value = data.options.option_a;
+            optionFields[1].value = data.options.option_b;
+            optionFields[2].value = data.options.option_c;
+            optionFields[3].value = data.options.option_d;
+            
+            // Auto-select the correct answer
+            const correctRadio = document.querySelector(`[name="questions[${questionNum}][correct]"][value="${data.options.correct_answer}"]`);
+            if (correctRadio) {
+                correctRadio.checked = true;
+            }
+            
+            // Fill in explanation if provided
+            const explanationField = document.querySelector(`[name="questions[${questionNum}][explanation]"]`);
+            if (explanationField && data.options.explanation) {
+                explanationField.value = data.options.explanation;
+            }
+            
+            statusSpan.textContent = '✅ AI options generated successfully!';
+            statusSpan.style.color = '#10b981';
+            
+            setTimeout(() => {
+                statusSpan.textContent = '';
+            }, 3000);
+        } else {
+            throw new Error(data.error || 'Failed to generate options');
+        }
+    } catch (error) {
+        statusSpan.textContent = '❌ Error: ' + error.message;
+        statusSpan.style.color = '#ef4444';
+        
+        setTimeout(() => {
+            statusSpan.textContent = '';
+        }, 5000);
+    }
+}
+
+function renumberQuestions() {
+    const questions = document.querySelectorAll('.question-item');
+    questions.forEach((question, index) => {
+        const newNum = index + 1;
+        question.setAttribute('data-question', newNum);
+        
+        // Update header
+        const header = question.querySelector('.question-header h4');
+        header.textContent = `Question ${newNum}`;
+        
+        // Update remove button
+        const removeBtn = question.querySelector('.remove-question');
+        removeBtn.setAttribute('onclick', `removeQuestion(${newNum})`);
+        
+        // Update form elements
+        const textArea = question.querySelector('textarea[name*="[text]"]');
+        if (textArea) {
+            textArea.name = `questions[${newNum}][text]`;
+            textArea.id = `question_${newNum}_text`;
+        }
+        
+        // Update radio buttons
+        const radios = question.querySelectorAll('input[type="radio"]');
+        radios.forEach(radio => {
+            radio.name = `questions[${newNum}][correct]`;
+        });
+        
+        // Update options
+        ['a', 'b', 'c', 'd'].forEach(letter => {
+            const option = question.querySelector(`textarea[name*="[option_${letter}]"]`);
+            if (option) {
+                option.name = `questions[${newNum}][option_${letter}]`;
+            }
+        });
+        
+        // Update explanation
+        const explanation = question.querySelector('textarea[name*="[explanation]"]');
+        if (explanation) {
+            explanation.name = `questions[${newNum}][explanation]`;
+            explanation.id = `question_${newNum}_explanation`;
+        }
+        
+        // Update points
+        const points = question.querySelector('input[name*="[points]"]');
+        if (points) {
+            points.name = `questions[${newNum}][points]`;
+            points.id = `question_${newNum}_points`;
+        }
+    });
+}
+
+// Form validation and initialization
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.quiz-form');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const questions = document.querySelectorAll('.question-item');
+            if (questions.length === 0) {
+                e.preventDefault();
+                alert('Please add at least one question to your quiz!');
+                return;
+            }
+            
+            // Validate each question has a correct answer selected
+            let allValid = true;
+            questions.forEach((question, index) => {
+                const radios = question.querySelectorAll('input[type="radio"]');
+                const checked = Array.from(radios).some(radio => radio.checked);
+                if (!checked) {
+                    allValid = false;
+                    alert(`Please select the correct answer for Question ${index + 1}`);
+                }
+            });
+            
+            if (!allValid) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Add smooth animations to question items
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    });
+    
+    document.querySelectorAll('.question-item').forEach(item => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = 'all 0.6s ease';
+        observer.observe(item);
+    });
+});
+</script>
+{% endblock %}

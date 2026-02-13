@@ -1,0 +1,743 @@
+{% extends "base.html" %}
+
+{% block title %}Course Content - {{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-video"></i> Course Content</h1>
+            <p>{{ course.title }} ({{ course.course_code }})</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_course_assignments', course_id=course.id) }}" class="btn btn-warning" style="margin-right: 1rem; background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); border: none;">
+                <i class="fas fa-tasks"></i> Assignments
+            </a>
+            <a href="{{ url_for('course_discussion_forum', course_id=course.id) }}" class="btn btn-primary" style="margin-right: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-comments"></i> Live Discussion Forum
+            </a>
+            <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Courses
+            </a>
+        </div>
+    </div>
+    
+    <!-- Upload Content Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-upload"></i> Upload Content
+            </h3>
+        </div>
+        <div class="card-content">
+            <form method="POST" action="{{ url_for('instructor_upload_content', course_id=course.id) }}" 
+                  enctype="multipart/form-data" class="upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="title">Content Title *</label>
+                        <input type="text" id="title" name="title" required 
+                               placeholder="e.g., Introduction to Python">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="content_type">Content Type</label>
+                        <select id="content_type" name="content_type">
+                            <option value="video">📹 Video</option>
+                            <option value="document">📄 Document/Notes</option>
+                            <option value="presentation">📊 Presentation</option>
+                            <option value="image">🖼️ Image</option>
+                            <option value="other">📎 Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" 
+                              placeholder="Brief description of the content..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file">Upload File *</label>
+                    <div class="file-upload-area">
+                        <input type="file" id="file" name="file" required accept="*/*">
+                        <div class="file-upload-hint">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Support for videos, documents, presentations, images</p>
+                            
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload Content
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Meeting Links Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-video-camera"></i> Online Meeting Links
+            </h3>
+        </div>
+        <div class="card-content">
+            <form method="POST" action="{{ url_for('instructor_add_meeting_link', course_id=course.id) }}" class="upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="meeting_title">Meeting Title *</label>
+                        <input type="text" id="meeting_title" name="title" required 
+                               placeholder="e.g., Weekly Class Meeting">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scheduled_time">Scheduled Time</label>
+                        <input type="datetime-local" id="scheduled_time" name="scheduled_time">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="meeting_link">Meeting Link (Zoom, Google Meet, Teams, etc.) *</label>
+                    <input type="url" id="meeting_link" name="meeting_link" required 
+                           placeholder="https://zoom.us/j/...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="meeting_description">Description</label>
+                    <textarea id="meeting_description" name="description" rows="2" 
+                              placeholder="Meeting details..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add Meeting Link
+                </button>
+            </form>
+            
+            {% if meeting_links %}
+                <div class="meeting-links-list" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;">Active Meeting Links</h4>
+                    {% for link in meeting_links %}
+                        <div class="meeting-link-card">
+                            <div class="meeting-link-info">
+                                <h5>{{ link.title }}</h5>
+                                {% if link.description %}
+                                    <p class="meeting-description">{{ link.description }}</p>
+                                {% endif %}
+                                {% if link.scheduled_time %}
+                                    <p class="meeting-time">
+                                        <i class="fas fa-clock"></i> {{ link.scheduled_time[:16] }}
+                                    </p>
+                                {% endif %}
+                                <a href="{{ link.meeting_link }}" target="_blank" class="meeting-url">
+                                    <i class="fas fa-external-link-alt"></i> {{ link.meeting_link }}
+                                </a>
+                            </div>
+                            <div class="meeting-link-actions">
+                                <form method="POST" action="{{ url_for('instructor_delete_meeting_link', course_id=course.id, link_id=link.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this meeting link?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Video Playlist Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-play-circle"></i> Video Playlist
+            </h3>
+        </div>
+        <div class="card-content">
+            <form method="POST" action="{{ url_for('instructor_add_video_playlist', course_id=course.id) }}" enctype="multipart/form-data" class="upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="video_title">Video Title *</label>
+                        <input type="text" id="video_title" name="title" required 
+                               placeholder="e.g., Lecture 1: Introduction">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duration">Duration</label>
+                        <input type="text" id="duration" name="duration" 
+                               placeholder="e.g., 15:30">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="video_url">Video URL (YouTube, Vimeo, or direct link) *</label>
+                    <input type="url" id="video_url" name="video_url" required 
+                           placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/...">
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+                        Supports YouTube, Vimeo, and direct video links (.mp4, .webm, etc.)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="video_description">Description</label>
+                    <textarea id="video_description" name="description" rows="2" 
+                              placeholder="Video description..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes_file">Upload Notes (PDF, DOCX, TXT, etc.)</label>
+                    <div class="file-upload-area">
+                        <input type="file" id="notes_file" name="notes_file" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx">
+                        <div class="file-upload-hint">
+                            <i class="fas fa-file-upload"></i>
+                            <p>Optional: Upload study notes or supplementary materials for this video</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add Video to Playlist
+                </button>
+            </form>
+            
+            {% if video_playlist %}
+                <div class="video-playlist-list" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;">Course Video Playlist ({{ video_playlist|length }} videos)</h4>
+                    <div class="playlist-grid">
+                        {% for video in video_playlist %}
+                            <div class="playlist-video-card">
+                                <div class="video-info">
+                                    <div class="video-number">{{ loop.index }}</div>
+                                    <div class="video-details">
+                                        <h5>{{ video.title }}</h5>
+                                        {% if video.description %}
+                                            <p class="video-description">{{ video.description }}</p>
+                                        {% endif %}
+                                        {% if video.duration %}
+                                            <span class="video-duration"><i class="fas fa-clock"></i> {{ video.duration }}</span>
+                                        {% endif %}
+                                        <a href="{{ video.video_url }}" target="_blank" class="video-link">
+                                            <i class="fas fa-play-circle"></i> Open Video
+                                        </a>
+                                        <!-- Edit Video Button -->
+                                        <button type="button" class="btn btn-sm btn-primary" 
+                                                onclick="openEditVideoModal('{{ video.id }}', '{{ video.title }}', '{{ video.video_url }}', '{{ video.duration }}', '{{ video.description }}')"
+                                                style="margin-left: 0.5rem; background: #3b82f6;">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+
+                                        {% if video.notes_file_path %}
+                                            <a href="{{ url_for('download_video_notes', video_id=video.id) }}" class="video-link" style="margin-left: 1rem; color: #28a745;">
+                                                <i class="fas fa-file-download"></i> Download Notes
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="video-actions">
+                                    <form method="POST" action="{{ url_for('instructor_delete_video_playlist', course_id=course.id, video_id=video.id) }}" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this video?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Existing Content -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-folder"></i> Course Materials
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if resources %}
+                <div class="resources-grid">
+                    {% for resource in resources %}
+                        <div class="resource-card {{ resource.file_type }}">
+                            <div class="resource-icon">
+                                {% if resource.file_type == 'video' %}
+                                    <i class="fas fa-video"></i>
+                                {% elif resource.file_type == 'document' %}
+                                    <i class="fas fa-file-text"></i>
+                                {% elif resource.file_type == 'presentation' %}
+                                    <i class="fas fa-presentation"></i>
+                                {% elif resource.file_type == 'image' %}
+                                    <i class="fas fa-image"></i>
+                                {% else %}
+                                    <i class="fas fa-file"></i>
+                                {% endif %}
+                            </div>
+                            <div class="resource-info">
+                                <h4>{{ resource.title }}</h4>
+                                {% if resource.description %}
+                                    <p class="resource-description">{{ resource.description }}</p>
+                                {% endif %}
+                                <div class="resource-meta">
+                                    <span class="file-type">{{ resource.file_type.title() }}</span>
+                                    <span class="upload-date">{{ resource.upload_date[:10] }}</span>
+                                </div>
+                            </div>
+                            <div class="resource-actions">
+                                <a href="{{ url_for('static', filename='../') }}{{ resource.file_path }}" 
+                                   class="btn btn-sm btn-primary" target="_blank">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('static', filename='../') }}{{ resource.file_path }}" 
+                                   class="btn btn-sm btn-secondary" download>
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open fa-3x"></i>
+                    <h3>No Content Yet</h3>
+                    <p>Upload videos, notes, and resources for your students.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-form {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border-radius: 15px;
+    padding: 2rem;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.file-upload-area {
+    position: relative;
+    border: 2px dashed rgba(238, 75, 106, 0.3);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: rgba(238, 75, 106, 0.6);
+    background: rgba(255,255,255,0.1);
+}
+
+.file-upload-hint {
+    color: #ee4b6a;
+}
+
+.file-upload-hint i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.resources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.resource-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border-radius: 15px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+}
+
+.resource-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+}
+
+.resource-icon {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.resource-icon i {
+    font-size: 2.5rem;
+    color: #ee4b6a;
+}
+
+.resource-info h4 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.resource-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.resource-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+}
+
+.file-type {
+    background: rgba(238, 75, 106, 0.1);
+    color: #ee4b6a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-weight: 500;
+}
+
+.upload-date {
+    color: #666;
+}
+
+.resource-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.meeting-link-card,
+.playlist-video-card {
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(238, 75, 106, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.meeting-link-card:hover,
+.playlist-video-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.meeting-link-info,
+.video-info {
+    flex: 1;
+}
+
+.meeting-link-info h5,
+.video-details h5 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.meeting-description,
+.video-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+}
+
+.meeting-time,
+.video-duration {
+    color: #ee4b6a;
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+}
+
+.meeting-url,
+.video-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+.meeting-url:hover,
+.video-link:hover {
+    text-decoration: underline;
+}
+
+.playlist-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.video-info {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.video-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ee4b6a, #f39c12);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.video-details {
+    flex: 1;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+/* Edit Video Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 1rem;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modal-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.modal-form input,
+.modal-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.modal-form input:focus,
+.modal-form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.modal-actions button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-actions .btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.modal-actions .btn-primary:hover {
+    background: #2563eb;
+}
+
+.modal-actions .btn-secondary {
+    background: #e5e7eb;
+    color: #333;
+}
+
+.modal-actions .btn-secondary:hover {
+    background: #d1d5db;
+}
+</style>
+
+<!-- Edit Video Modal -->
+<div id="editVideoModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Video</h2>
+            <button type="button" class="modal-close" onclick="closeEditVideoModal()">×</button>
+        </div>
+        <form id="editVideoForm" class="modal-form">
+            <input type="hidden" id="videoId" name="video_id">
+            
+            <div class="form-group">
+                <label for="editVideoTitle">Video Title *</label>
+                <input type="text" id="editVideoTitle" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="editVideoUrl">Video URL *</label>
+                <input type="url" id="editVideoUrl" name="video_url" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="editVideoDuration">Duration</label>
+                <input type="text" id="editVideoDuration" name="duration" placeholder="e.g., 15:30">
+            </div>
+            
+            <div class="form-group">
+                <label for="editVideoDescription">Description</label>
+                <textarea id="editVideoDescription" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeEditVideoModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentCourseId = {{ course.id }};
+let currentVideoId = null;
+
+function openEditVideoModal(videoId, title, videoUrl, duration, description) {
+    currentVideoId = videoId;
+    document.getElementById('videoId').value = videoId;
+    document.getElementById('editVideoTitle').value = title;
+    document.getElementById('editVideoUrl').value = videoUrl;
+    document.getElementById('editVideoDuration').value = duration || '';
+    document.getElementById('editVideoDescription').value = description || '';
+    document.getElementById('editVideoModal').classList.add('show');
+}
+
+function closeEditVideoModal() {
+    document.getElementById('editVideoModal').classList.remove('show');
+    document.getElementById('editVideoForm').reset();
+}
+
+document.getElementById('editVideoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(document.getElementById('editVideoForm'));
+    const videoId = formData.get('video_id');
+    
+    try {
+        const response = await fetch(`/instructor/courses/${currentCourseId}/content/video/${videoId}/edit`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Video updated successfully!');
+            location.reload();
+        } else {
+            alert('Error updating video');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating video');
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('editVideoModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editVideoModal') {
+        closeEditVideoModal();
+    }
+});
+</script>
+
+{% endblock %}

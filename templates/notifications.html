@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - LearnNest{% endblock %}
+
+{% block styles %}
+<style>
+.notifications-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.notifications-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.notifications-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.notifications-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.notification-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border-left: 4px solid transparent;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notification-item.success {
+    border-left-color: var(--success);
+}
+
+.notification-item.error {
+    border-left-color: var(--danger);
+}
+
+.notification-item.warning {
+    border-left-color: var(--warning);
+}
+
+.notification-item.info {
+    border-left-color: var(--primary);
+}
+
+.notification-item.forum {
+    border-left-color: #FF9500;
+}
+
+.notification-item.message {
+    border-left-color: #5AC8FA;
+}
+
+.notification-item.enrollment {
+    border-left-color: #34C759;
+}
+
+.notification-item.course {
+    border-left-color: #FF3B30;
+}
+
+.notification-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+}
+
+.notification-item.success .notification-icon {
+    background: rgba(52, 199, 89, 0.15);
+}
+
+.notification-item.error .notification-icon {
+    background: rgba(255, 59, 48, 0.15);
+}
+
+.notification-item.warning .notification-icon {
+    background: rgba(255, 204, 0, 0.15);
+}
+
+.notification-item.info .notification-icon {
+    background: rgba(10, 132, 255, 0.15);
+}
+
+.notification-item.forum .notification-icon {
+    background: rgba(255, 149, 0, 0.15);
+}
+
+.notification-item.message .notification-icon {
+    background: rgba(90, 200, 250, 0.15);
+}
+
+.notification-item.enrollment .notification-icon {
+    background: rgba(52, 199, 89, 0.15);
+}
+
+.notification-item.course .notification-icon {
+    background: rgba(255, 59, 48, 0.15);
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.notification-message {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.notification-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.notification-time {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.unread-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+.notification-actions {
+    margin-left: auto;
+    padding-left: 1rem;
+}
+
+.btn-goto {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-goto:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.empty-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.empty-state .btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.empty-state .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.notification-link-wrapper {
+    text-decoration: none;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .notifications-page {
+        padding: 1rem;
+    }
+
+    .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+
+    .notification-actions {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        padding-left: 0;
+    }
+
+    .unread-badge {
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notifications-page">
+    <div class="notifications-header">
+        <h1>📬 Notifications</h1>
+        <p>Stay updated with your course activities, messages, and announcements</p>
+    </div>
+
+    {% if notifications %}
+        <div class="notifications-list">
+            {% for notification in notifications %}
+                {% set notification_type = notification.type %}
+                {% set notification_class = notification_type %}
+                
+                {% if 'forum' in notification.message.lower() %}
+                    {% set notification_class = 'forum' %}
+                {% elif 'message' in notification.message.lower() or 'chat' in notification.message.lower() %}
+                    {% set notification_class = 'message' %}
+                {% elif 'enrollment' in notification.message.lower() %}
+                    {% set notification_class = 'enrollment' %}
+                {% elif 'course' in notification.message.lower() %}
+                    {% set notification_class = 'course' %}
+                {% endif %}
+
+                <a href="{{ url_for('handle_notification_redirect', notification_id=notification.id) }}" class="notification-link-wrapper">
+                    <div class="notification-item {{ notification_class }}">
+                        <div class="notification-icon">
+                            {% if 'forum' in notification.message.lower() %}
+                                💬
+                            {% elif 'message' in notification.message.lower() or 'chat' in notification.message.lower() %}
+                                💌
+                            {% elif 'enrollment' in notification.message.lower() %}
+                                ✅
+                            {% elif notification.type == 'success' %}
+                                ✓
+                            {% elif notification.type == 'error' %}
+                                ✕
+                            {% elif notification.type == 'warning' %}
+                                ⚠
+                            {% else %}
+                                🔔
+                            {% endif %}
+                        </div>
+
+                        <div class="notification-content">
+                            <div class="notification-title">{{ notification.title }}</div>
+                            <div class="notification-message">{{ notification.message }}</div>
+                            <div class="notification-meta">
+                                <span class="notification-time">
+                                    🕐 {{ notification.created_at[:16] if notification.created_at else 'Unknown' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="notification-actions">
+                            <span class="btn-goto">
+                                Go <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+
+                        {% if not notification.is_read %}
+                            <div class="unread-badge"></div>
+                        {% endif %}
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🔕</div>
+            <h3>All Caught Up!</h3>
+            <p>No new notifications. You're all set! Check back soon for course updates, messages, and announcements.</p>
+            <a href="{{ url_for('dashboard') }}" class="btn-primary">← Back to Dashboard</a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const unreadBadges = document.querySelectorAll('.unread-badge');
+    if (unreadBadges.length > 0) {
+        unreadBadges[0].closest('.notification-item').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,994 @@
+{% extends "base.html" %}
+
+{% block title %}Student Enrollments - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container" style="margin-top: 60px;">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-users"></i> Student Enrollments</h1>
+            <p>Manage student enrollment requests and approvals for your courses.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                <i class="fas fa-book"></i> My Courses
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card warning">
+            <span class="stat-number">{{ stats.pending_enrollments }}</span>
+            <div class="stat-label">Pending Approval</div>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="stat-card success">
+            <span class="stat-number">{{ stats.approved_enrollments }}</span>
+            <div class="stat-label">Approved Students</div>
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        </div>
+        <div class="stat-card secondary">
+            <span class="stat-number">{{ stats.rejected_enrollments }}</span>
+            <div class="stat-label">Rejected</div>
+            <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+        </div>
+        <div class="stat-card primary">
+            <span class="stat-number">{{ stats.total_enrollments }}</span>
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-icon"><i class="fas fa-list"></i></div>
+        </div>
+    </div>
+    
+    {% if enrollments %}
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterEnrollments('all')">
+                All ({{ stats.total_enrollments }})
+            </button>
+            <button class="filter-tab" onclick="filterEnrollments('pending')">
+                Pending ({{ stats.pending_enrollments }})
+            </button>
+            <button class="filter-tab" onclick="filterEnrollments('approved')">
+                Approved ({{ stats.approved_enrollments }})
+            </button>
+            <button class="filter-tab" onclick="filterEnrollments('rejected')">
+                Rejected ({{ stats.rejected_enrollments }})
+            </button>
+        </div>
+        
+        <div class="enrollments-container">
+            {% for enrollment in enrollments %}
+                <div class="enrollment-card {{ enrollment.status }}" data-status="{{ enrollment.status }}">
+                    <div class="enrollment-header">
+                        <div class="student-info">
+                            <div class="student-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="student-details">
+                                <h3>{{ enrollment.student_name }}</h3>
+                                <p class="student-email">{{ enrollment.student_email }}</p>
+                                <p class="enrollment-date">
+                                    <i class="fas fa-calendar"></i> 
+                                    Applied {{ enrollment.enrolled_at[:19] if enrollment.enrolled_at else 'N/A' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="enrollment-status">
+                            {% if enrollment.status == 'pending' %}
+                                <span class="status-badge pending">
+                                    <i class="fas fa-clock"></i> Pending Approval
+                                </span>
+                            {% elif enrollment.status == 'approved' %}
+                                <span class="status-badge approved">
+                                    <i class="fas fa-check-circle"></i> Approved
+                                    {% if enrollment.approved_at %}
+                                        <small>{{ enrollment.approved_at[:10] }}</small>
+                                    {% endif %}
+                                </span>
+                            {% elif enrollment.status == 'rejected' %}
+                                <span class="status-badge rejected">
+                                    <i class="fas fa-times-circle"></i> Rejected
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="enrollment-course">
+                        <div class="course-info">
+                            <h4>{{ enrollment.course_title }}</h4>
+                            <span class="course-code">{{ enrollment.course_code }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if enrollment.status == 'pending' %}
+                        <div class="enrollment-actions-compact">
+                            <form method="POST" action="{{ url_for('instructor_approve_enrollment', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-success-compact" onclick="return confirm('Approve {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('instructor_reject_enrollment', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-danger-compact" onclick="return confirm('Reject {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </form>
+                        </div>
+                    {% elif enrollment.status == 'approved' %}
+                        <div class="enrollment-actions-compact">
+                            <form method="POST" action="{{ url_for('instructor_block_student', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-warning-compact" onclick="return confirm('Block {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-lock"></i> Block
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('instructor_remove_student', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-danger-compact" onclick="return confirm('Remove {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    {% elif enrollment.status == 'blocked' %}
+                        <div class="enrollment-actions-compact">
+                            <form method="POST" action="{{ url_for('instructor_unblock_student', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-primary-compact" onclick="return confirm('Unblock {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-unlock"></i> Unblock
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('instructor_remove_student', enrollment_id=enrollment.id) }}" style="display: inline;">
+                                <button type="submit" class="btn-compact btn-danger-compact" onclick="return confirm('Remove {{ enrollment.student_name }}?')">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="enrollment-info">
+                            <p class="status-info">
+                                <i class="fas fa-info-circle text-muted"></i>
+                                Enrollment request was rejected. Student cannot access course content.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-content">
+                <div class="empty-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2>No Enrollment Requests</h2>
+                <p>When students request to enroll in your courses, their requests will appear here for approval.</p>
+                <a href="{{ url_for('instructor_courses') }}" class="btn btn-primary btn-glow btn-large">
+                    <i class="fas fa-book"></i> Manage My Courses
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+    --bg-card: #1a1a1a;
+    --bg-card-hover: #222222;
+    --border-primary: #2a2a2a;
+    --border-secondary: #333333;
+    --border-accent: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-tertiary: #808080;
+    --accent-red: #ff2e63;
+    --accent-blue: #00a8ff;
+    --accent-green: #00d8a7;
+    --accent-purple: #9d4edd;
+    --accent-orange: #ff9e00;
+    --accent-cyan: #00f5d4;
+    --accent-yellow: #ffd166;
+    --glow-red: 0 0 20px rgba(255, 46, 99, 0.4);
+    --glow-blue: 0 0 20px rgba(0, 168, 255, 0.4);
+    --glow-green: 0 0 20px rgba(0, 216, 167, 0.4);
+    --glow-purple: 0 0 20px rgba(157, 78, 221, 0.4);
+    --glow-orange: 0 0 20px rgba(255, 158, 0, 0.4);
+    --glow-yellow: 0 0 20px rgba(255, 209, 102, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.8);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.9);
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-content h1 i {
+    color: var(--accent-blue);
+    text-shadow: var(--glow-blue);
+}
+
+.header-content p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+.header-actions .btn {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    padding: 0.875rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+    background: var(--bg-card-hover);
+    border-color: var(--border-secondary);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-xl);
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transition: left 0.6s ease;
+}
+
+.stat-card:hover::before {
+    left: 100%;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-secondary);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card.warning:hover {
+    border-color: var(--accent-orange);
+    box-shadow: var(--glow-orange);
+}
+
+.stat-card.success:hover {
+    border-color: var(--accent-green);
+    box-shadow: var(--glow-green);
+}
+
+.stat-card.secondary:hover {
+    border-color: var(--accent-red);
+    box-shadow: var(--glow-red);
+}
+
+.stat-card.primary:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.stat-card.warning .stat-icon {
+    background: linear-gradient(135deg, var(--accent-orange), #e85d04);
+    box-shadow: var(--glow-orange);
+}
+
+.stat-card.success .stat-icon {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    box-shadow: var(--glow-green);
+}
+
+.stat-card.secondary .stat-icon {
+    background: linear-gradient(135deg, var(--accent-red), #c1121f);
+    box-shadow: var(--glow-red);
+}
+
+.stat-card.primary .stat-icon {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    box-shadow: var(--glow-blue);
+}
+
+/* Filter Tabs */
+.filter-tabs {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    color: var(--text-secondary);
+    position: relative;
+    overflow: hidden;
+}
+
+.filter-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.filter-tab:hover::before {
+    left: 100%;
+}
+
+.filter-tab:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    color: var(--text-primary);
+    border-color: transparent;
+    box-shadow: var(--glow-blue);
+}
+
+/* Enrollments Container */
+.enrollments-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.enrollment-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-primary);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.enrollment-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green), var(--accent-purple));
+    border-radius: var(--border-radius-xl);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: subtract;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    padding: 1px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.enrollment-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+    background: var(--bg-card-hover);
+}
+
+.enrollment-card:hover::before {
+    opacity: 1;
+}
+
+.enrollment-card.pending {
+    border-left: 4px solid var(--accent-orange);
+}
+
+.enrollment-card.approved {
+    border-left: 4px solid var(--accent-green);
+}
+
+.enrollment-card.rejected {
+    border-left: 4px solid var(--accent-red);
+}
+
+.enrollment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.student-info {
+    display: flex;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.student-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    box-shadow: var(--glow-blue);
+    flex-shrink: 0;
+}
+
+.student-details h3 {
+    margin: 0 0 0.15rem 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.student-email {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+.enrollment-date {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.enrollment-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-direction: row;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.status-badge.pending {
+    background: rgba(255, 158, 0, 0.1);
+    color: var(--accent-orange);
+    border-color: var(--accent-orange);
+}
+
+.status-badge.approved {
+    background: rgba(0, 216, 167, 0.1);
+    color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.status-badge.rejected {
+    background: rgba(255, 46, 99, 0.1);
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+.status-badge small {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.enrollment-course {
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: 1px solid var(--border-primary);
+    gap: 0.75rem;
+}
+
+.course-info h4 {
+    margin: 0 0 0.15rem 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.course-code {
+    background: var(--bg-secondary);
+    color: var(--accent-cyan);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid var(--border-accent);
+    font-family: 'Monaco', 'Consolas', monospace;
+    display: inline-block;
+}
+
+.progress-info {
+    text-align: right;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 16px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(10, 10, 30, 0.8));
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 212, 255, 0.15);
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #00ffd9, #00d4ff);
+    background-size: 200% 100%;
+    animation: progressShine 2s linear infinite;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.7), inset 0 1px 3px rgba(255, 255, 255, 0.4);
+    position: relative;
+    border-radius: 12px;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    animation: progressGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+@keyframes progressGlow {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+}
+
+.progress-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+    letter-spacing: 0.05em;
+}
+
+/* Compact Action Buttons - All in One Line */
+.enrollment-actions-compact {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.btn-compact {
+    padding: 0.35rem 0.6rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+.btn-compact:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-success-compact {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    color: var(--text-primary);
+}
+
+.btn-success-compact:hover {
+    box-shadow: var(--glow-green);
+}
+
+.btn-danger-compact {
+    background: linear-gradient(135deg, var(--accent-red), #c1121f);
+    color: var(--text-primary);
+}
+
+.btn-danger-compact:hover {
+    box-shadow: var(--glow-red);
+}
+
+.btn-warning-compact {
+    background: linear-gradient(135deg, var(--accent-orange), #e85d04);
+    color: var(--text-primary);
+}
+
+.btn-warning-compact:hover {
+    box-shadow: var(--glow-orange);
+}
+
+.btn-primary-compact {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    color: var(--text-primary);
+}
+
+.btn-primary-compact:hover {
+    box-shadow: var(--glow-blue);
+}
+
+.enrollment-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.enrollment-actions .btn {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.8rem;
+    flex: 1;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    color: var(--text-primary);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--accent-red), #c1121f);
+    color: var(--text-primary);
+}
+
+.enrollment-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-green);
+}
+
+.enrollment-actions .btn-danger:hover {
+    box-shadow: var(--glow-red);
+}
+
+.enrollment-info {
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    text-align: center;
+    border: 1px solid var(--border-primary);
+}
+
+.status-info {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.text-success {
+    color: var(--accent-green);
+}
+
+.text-muted {
+    color: var(--text-tertiary);
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.empty-state-content {
+    max-width: 500px;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-card);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem;
+    font-size: 2rem;
+    color: var(--accent-blue);
+    border: 2px solid var(--border-primary);
+}
+
+.empty-state h2 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.btn-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-glow:hover {
+    box-shadow: var(--glow-blue);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    border-radius: var(--border-radius);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    color: var(--text-primary);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-blue);
+    background: linear-gradient(135deg, #0096ff, #0077b6);
+}
+
+@media (max-width: 1024px) {
+    .enrollments-container {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .enrollments-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .filter-tabs {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .enrollment-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .enrollment-course {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .enrollment-actions {
+        flex-direction: column;
+    }
+    
+    .student-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .student-avatar {
+        align-self: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h1 {
+        font-size: 2rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-tabs {
+        flex-direction: column;
+    }
+    
+    .enrollment-card {
+        padding: 1.5rem;
+    }
+}
+</style>
+
+<script>
+function filterEnrollments(status) {
+    // Update active tab
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter enrollment cards
+    document.querySelectorAll('.enrollment-card').forEach(card => {
+        if (status === 'all' || card.dataset.status === status) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

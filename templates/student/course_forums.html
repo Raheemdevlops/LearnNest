@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Course Forums - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px;">
+    <div class="page-header" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                    <i class="fas fa-comments"></i> Discussion Forums
+                </h1>
+                <p style="color: var(--text-secondary); margin: 0;">
+                    {{ course.title }} ({{ course.course_code }})
+                </p>
+            </div>
+            <a href="{{ url_for('student_course_view', course_id=course.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Course
+            </a>
+        </div>
+    </div>
+
+    {% if forums %}
+    <div style="display: grid; gap: 1.5rem;">
+        {% for forum in forums %}
+        <div class="card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: all 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                        <i class="fas fa-comment-dots"></i> {{ forum['title'] }}
+                    </h3>
+                    <p style="color: var(--text-secondary); margin: 0;">
+                        {{ forum['description'] }}
+                    </p>
+                </div>
+                <a href="{{ url_for('student_forum_topics', course_id=course.id, forum_id=forum['id']) }}" 
+                   class="btn btn-primary btn-sm">
+                    <i class="fas fa-arrow-right"></i> View Topics
+                </a>
+            </div>
+            
+            <div style="display: flex; gap: 2rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.9rem; color: var(--text-secondary);">
+                <div>
+                    <i class="fas fa-list"></i>
+                    <span>{{ forum['topic_count'] or 0 }} Topics</span>
+                </div>
+                <div>
+                    <i class="fas fa-comment"></i>
+                    <span>{{ forum['post_count'] or 0 }} Posts</span>
+                </div>
+                {% if forum['last_post_date'] %}
+                <div>
+                    <i class="fas fa-clock"></i>
+                    <span>Last post: {{ forum['last_post_date'] }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if recent_topics %}
+    <div style="margin-top: 3rem;">
+        <h2 style="margin-bottom: 1.5rem; color: var(--text-primary);">
+            <i class="fas fa-fire"></i> Recent Topics
+        </h2>
+        <div style="display: grid; gap: 1rem;">
+            {% for topic in recent_topics %}
+            <div class="card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 0.25rem 0;">
+                            <a href="{{ url_for('student_forum_topic', course_id=course.id, forum_id=topic['forum_id'], topic_id=topic['id']) }}" 
+                               style="color: var(--primary); text-decoration: none;">
+                                {{ topic['title'] }}
+                            </a>
+                        </h4>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                            By {{ topic['author_name'] }} • {{ topic['created_at'] }}
+                        </div>
+                    </div>
+                    <div style="text-align: center; min-width: 80px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">
+                            {{ topic['post_count'] or 0 }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            replies
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border);">
+        <i class="fas fa-comments" style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+        <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">No Forums Yet</h2>
+        <p style="color: var(--text-secondary);">The instructor hasn't created any discussion forums for this course yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

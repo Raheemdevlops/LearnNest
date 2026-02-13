@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Register - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<style>
+body {
+    background: #000000;
+    color: #ffffff;
+}
+</style>
+
+<div class="container">
+    <div class="card" style="max-width: 500px; margin: 2rem auto; background: #121212; border: 1px solid #2c2c2e;">
+        <div class="text-center mb-3">
+            <h2 style="color: #ffffff;"><i class="fas fa-user-plus"></i> Join LearnNest</h2>
+            <p style="color: #ebebf5;">Create your account to start learning</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('register') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-group">
+                <label for="full_name">Full Name *</label>
+                <input type="text" id="full_name" name="full_name" required 
+                       placeholder="Enter your full name">
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Choose a username">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="Enter your email address">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Account Type *</label>
+                <select id="role" name="role" required onchange="toggleInstructorFields()">
+                    <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
+                </select>
+                <small style="color: var(--text-secondary); font-size: 0.85rem;">
+                    <i class="fas fa-info-circle"></i> 
+                    Instructor accounts require admin approval before access
+                </small>
+            </div>
+            
+            <!-- Instructor Screenshot Upload -->
+            <div id="instructor-fields" class="form-group" style="display: none;">
+                <label for="instructor_screenshot">Upload Screenshot for Verification *</label>
+                <div class="file-upload-container">
+                    <input type="file" id="instructor_screenshot" name="instructor_screenshot" 
+                           accept="image/*" onchange="previewScreenshot(this)">
+                    <div class="upload-help">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Upload a screenshot showing your qualifications, teaching credentials, or relevant documents for admin verification.</p>
+                    </div>
+                    <div id="screenshot-preview" class="screenshot-preview"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Create a secure password" minlength="6">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password *</label>
+                <input type="password" id="confirm_password" name="confirm_password" required 
+                       placeholder="Confirm your password" minlength="6">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </form>
+        
+        <div class="text-center mt-2">
+            <p class="text-muted">
+                Already have an account? 
+                <a href="{{ url_for('login') }}" style="color: var(--primary-color); text-decoration: none;">
+                    Sign in here
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Styling for file upload -->
+<style>
+.file-upload-container {
+    border: 2px dashed var(--border);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.file-upload-container:hover {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.file-upload-container input[type="file"] {
+    margin-bottom: 1rem;
+}
+
+.upload-help {
+    color: var(--text-secondary);
+}
+
+.upload-help i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.upload-help p {
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.screenshot-preview {
+    margin-top: 1rem;
+}
+
+.screenshot-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#instructor-fields {
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--primary-color);
+}
+</style>
+
+<script>
+// Toggle instructor fields based on role selection
+function toggleInstructorFields() {
+    const role = document.getElementById('role').value;
+    const instructorFields = document.getElementById('instructor-fields');
+    const screenshotInput = document.getElementById('instructor_screenshot');
+    
+    if (role === 'instructor') {
+        instructorFields.style.display = 'block';
+        screenshotInput.required = true;
+    } else {
+        instructorFields.style.display = 'none';
+        screenshotInput.required = false;
+        screenshotInput.value = '';
+        document.getElementById('screenshot-preview').innerHTML = '';
+    }
+}
+
+// Preview uploaded screenshot
+function previewScreenshot(input) {
+    const previewDiv = document.getElementById('screenshot-preview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            previewDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <img src="${e.target.result}" alt="Screenshot Preview">
+                    <p style="margin-top: 0.5rem; color: var(--success-color); font-size: 0.9rem;">
+                        <i class="fas fa-check-circle"></i> Screenshot uploaded successfully
+                    </p>
+                </div>
+            `;
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('password').addEventListener('input', function() {
+    const confirmPassword = document.getElementById('confirm_password');
+    if (confirmPassword.value) {
+        confirmPassword.dispatchEvent(new Event('input'));
+    }
+});
+
+// Form validation for instructor screenshot
+document.querySelector('form').addEventListener('submit', function(e) {
+    const role = document.getElementById('role').value;
+    const screenshotInput = document.getElementById('instructor_screenshot');
+    
+    if (role === 'instructor' && !screenshotInput.files[0]) {
+        e.preventDefault();
+        alert('Please upload a screenshot for instructor account verification.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

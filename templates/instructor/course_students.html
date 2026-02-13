@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students - {{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px; margin: 20px auto; padding: 0 2rem;">
+    <!-- Header -->
+    <div class="page-header" style="margin-bottom: 2.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h1 style="font-size: 2.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.5rem;">
+                    <i class="fas fa-users-cog"></i> Manage Student Progress
+                </h1>
+                <p style="font-size: 1.2rem; color: var(--text-secondary); margin: 0;">
+                    {{ course.title }} ({{ course.course_code }})
+                </p>
+            </div>
+            <a href="{{ url_for('instructor_courses') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Courses
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card" style="margin-bottom: 2rem; background: var(--gradient-primary); color: white; border: none;">
+        <div class="card-body" style="padding: 2rem;">
+            <h3 style="margin: 0 0 1rem 0; font-size: 1.3rem; font-weight: 700;">
+                <i class="fas fa-info-circle"></i> Manual Progress Control
+            </h3>
+            <p style="margin: 0; font-size: 1rem; opacity: 0.95;">
+                Set custom progress percentages for each student. Manual progress overrides automatic quiz-based calculation. 
+                Leave blank or click "Reset to Auto" to use automatic progress tracking.
+            </p>
+        </div>
+    </div>
+
+    <!-- Bulk Progress Control -->
+    <div class="card" style="margin-bottom: 2rem; border: 2px solid var(--accent-primary);">
+        <div class="card-header" style="background: rgba(10, 132, 255, 0.1); padding: 1.5rem; border-bottom: 2px solid var(--border);">
+            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--text-primary);">
+                <i class="fas fa-layer-group"></i> Set Progress for All Students at Once
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <div style="display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display: block; margin-bottom: 0.7rem; font-weight: 600; color: var(--text-primary);">
+                        <i class="fas fa-percentage"></i> Progress Percentage (0-100%)
+                    </label>
+                    <input type="number" 
+                           id="bulk-progress-input"
+                           min="0" 
+                           max="100" 
+                           step="1"
+                           placeholder="Enter progress percentage"
+                           style="width: 100%; padding: 0.9rem 1rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; font-weight: 600; background: var(--card-bg); color: var(--text-primary); transition: all 0.3s;"
+                           onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(10, 132, 255, 0.2)'"
+                           onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+                </div>
+                <button onclick="setBulkProgress({{ course.id }})" 
+                        class="btn btn-bulk-progress" 
+                        style="padding: 0.9rem 2rem; font-size: 1rem; font-weight: 600; background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;"
+                        onmouseover="this.style.background='var(--warning)'; this.style.borderColor='var(--warning)'; this.style.color='white';"
+                        onmouseout="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)';">
+                    <i class="fas fa-check-double"></i> Apply to All Students
+                </button>
+            </div>
+            <p style="margin: 1rem 0 0 0; font-size: 0.9rem; color: var(--text-secondary);">
+                <i class="fas fa-lightbulb"></i> This will set the same progress percentage for all {{ students|length }} enrolled student(s) in this course.
+            </p>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    {% if students %}
+    <div class="card">
+        <div class="card-header" style="background: var(--card-hover); padding: 1.5rem; border-bottom: 2px solid var(--border);">
+            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--text-primary);">
+                <i class="fas fa-graduation-cap"></i> Enrolled Students ({{ students|length }})
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--card-hover); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 1.2rem 1.5rem; text-align: left; font-weight: 700; color: var(--text-primary);">Student Name</th>
+                            <th style="padding: 1.2rem 1.5rem; text-align: left; font-weight: 700; color: var(--text-primary);">Email</th>
+                            <th style="padding: 1.2rem 1.5rem; text-align: center; font-weight: 700; color: var(--text-primary);">Current Progress</th>
+                            <th style="padding: 1.2rem 1.5rem; text-align: center; font-weight: 700; color: var(--text-primary);">Manual Progress (%)</th>
+                            <th style="padding: 1.2rem 1.5rem; text-align: center; font-weight: 700; color: var(--text-primary);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" 
+                            onmouseover="this.style.background='var(--card-hover)'" 
+                            onmouseout="this.style.background='transparent'">
+                            <td style="padding: 1.5rem 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;">
+                                        {{ student.student_name[0].upper() }}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-primary); font-size: 1rem;">{{ student.student_name }}</div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">ID: {{ student.student_id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="padding: 1.5rem 1.5rem; color: var(--text-secondary);">
+                                <i class="fas fa-envelope" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                                {{ student.student_email }}
+                            </td>
+                            <td style="padding: 1.5rem 1.5rem; text-align: center;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                                    <div class="progress-circle" data-progress="{{ student.display_progress|round|int }}" style="position: relative; width: 80px; height: 80px;">
+                                        <svg width="80" height="80" style="transform: rotate(-90deg);">
+                                            <circle cx="40" cy="40" r="35" fill="none" stroke="var(--border)" stroke-width="6"></circle>
+                                            <circle cx="40" cy="40" r="35" fill="none" stroke="var(--success)" stroke-width="6" 
+                                                    stroke-dasharray="{{ (student.display_progress * 2.2)|round(2) }} 220" 
+                                                    stroke-linecap="round" style="transition: stroke-dasharray 0.5s ease;"></circle>
+                                        </svg>
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
+                                            {{ student.display_progress|round|int }}%
+                                        </div>
+                                    </div>
+                                    {% if student.manual_progress_override is not none %}
+                                    <span style="background: var(--warning); color: white; padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                                        <i class="fas fa-hand-paper"></i> MANUAL
+                                    </span>
+                                    {% else %}
+                                    <span style="background: var(--success); color: white; padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                                        <i class="fas fa-robot"></i> AUTO
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td style="padding: 1.5rem 1.5rem;">
+                                <div style="display: flex; justify-content: center;">
+                                    <input type="number" 
+                                           class="progress-input" 
+                                           id="progress-{{ student.student_id }}"
+                                           min="0" 
+                                           max="100" 
+                                           step="1"
+                                           placeholder="0-100"
+                                           value="{% if student.manual_progress_override is not none %}{{ student.manual_progress_override|round|int }}{% endif %}"
+                                           style="width: 100px; padding: 0.7rem; border: 2px solid var(--border); border-radius: 8px; text-align: center; font-size: 1rem; font-weight: 600; background: var(--card-bg); color: var(--text-primary); transition: all 0.3s;"
+                                           onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(10, 132, 255, 0.2)'"
+                                           onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+                                </div>
+                            </td>
+                            <td style="padding: 1.5rem 1.5rem;">
+                                <div style="display: flex; justify-content: center; gap: 0.7rem;">
+                                    <button onclick="setProgress({{ course.id }}, {{ student.student_id }})" 
+                                            class="btn btn-primary" 
+                                            style="padding: 0.7rem 1.3rem; font-size: 0.9rem;">
+                                        <i class="fas fa-save"></i> Set
+                                    </button>
+                                    <button onclick="resetProgress({{ course.id }}, {{ student.student_id }})" 
+                                            class="btn btn-secondary" 
+                                            style="padding: 0.7rem 1.3rem; font-size: 0.9rem;"
+                                            title="Reset to automatic calculation">
+                                        <i class="fas fa-undo"></i> Reset to Auto
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="padding: 4rem; text-align: center;">
+        <div style="color: var(--text-secondary);">
+            <i class="fas fa-users" style="font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5;"></i>
+            <h3 style="margin-bottom: 1rem; color: var(--text-primary);">No Students Enrolled</h3>
+            <p>No students have enrolled in this course yet.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function setBulkProgress(courseId) {
+    const input = document.getElementById('bulk-progress-input');
+    const progress = input.value;
+    
+    if (progress === '') {
+        showToast('Error', 'Please enter a progress value', 'error', 'fa-exclamation-triangle');
+        return;
+    }
+    
+    const progressNum = parseFloat(progress);
+    if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+        showToast('Error', 'Progress must be between 0 and 100', 'error', 'fa-exclamation-triangle');
+        return;
+    }
+    
+    if (!confirm(`Set progress to ${progressNum}% for all students in this course?`)) {
+        return;
+    }
+    
+    // Send request
+    const formData = new FormData();
+    formData.append('progress', progress);
+    
+    fetch(`/instructor/courses/${courseId}/set-progress-bulk`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', data.message, 'success', 'fa-check-circle');
+            // Reload page to show updated progress
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.error || 'Failed to set progress', 'error', 'fa-exclamation-triangle');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error', 'Network error occurred', 'error', 'fa-exclamation-triangle');
+    });
+}
+
+function setProgress(courseId, studentId) {
+    const input = document.getElementById(`progress-${studentId}`);
+    const progress = input.value;
+    
+    if (progress === '') {
+        showToast('Error', 'Please enter a progress value', 'error', 'fa-exclamation-triangle');
+        return;
+    }
+    
+    const progressNum = parseFloat(progress);
+    if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+        showToast('Error', 'Progress must be between 0 and 100', 'error', 'fa-exclamation-triangle');
+        return;
+    }
+    
+    // Send request
+    const formData = new FormData();
+    formData.append('progress', progress);
+    
+    fetch(`/instructor/courses/${courseId}/students/${studentId}/set-progress`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', data.message, 'success', 'fa-check-circle');
+            // Reload page to show updated progress
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.error || 'Failed to set progress', 'error', 'fa-exclamation-triangle');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error', 'Network error occurred', 'error', 'fa-exclamation-triangle');
+    });
+}
+
+function resetProgress(courseId, studentId) {
+    if (!confirm('Reset to automatic progress calculation? This will clear the manual override.')) {
+        return;
+    }
+    
+    // Send request with empty progress to reset
+    const formData = new FormData();
+    formData.append('progress', '');
+    
+    fetch(`/instructor/courses/${courseId}/students/${studentId}/set-progress`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', data.message, 'success', 'fa-check-circle');
+            // Reload page to show updated progress
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.error || 'Failed to reset progress', 'error', 'fa-exclamation-triangle');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error', 'Network error occurred', 'error', 'fa-exclamation-triangle');
+    });
+}
+</script>
+
+<style>
+.progress-input:hover {
+    border-color: var(--primary) !important;
+}
+
+.btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+    table {
+        font-size: 0.9rem;
+    }
+    
+    th, td {
+        padding: 1rem !important;
+    }
+}
+</style>
+{% endblock %}

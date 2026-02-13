@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Results - {{ quiz.title }} - LearnNest Enhanced{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-chart-bar"></i> Quiz Results</h1>
+            <p>{{ quiz.title }} - {{ quiz.course_title }}</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_course_quizzes', course_id=quiz.course_id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Quizzes
+            </a>
+            <a href="{{ url_for('instructor_quiz_analytics', course_id=quiz.course_id, quiz_id=quiz.id) }}" class="btn btn-info">
+                <i class="fas fa-chart-line"></i> Analytics
+            </a>
+        </div>
+    </div>
+    
+    <!-- Quiz Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.total_submissions }}</h3>
+                <p>Total Submissions</p>
+            </div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ stats.graded_count }}</h3>
+                <p>Graded</p>
+            </div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ "%.1f"|format(stats.average_grade) }}</h3>
+                <p>Average Grade</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submissions List -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list"></i> Student Submissions
+            </h3>
+        </div>
+        <div class="card-content">
+            {% if submissions %}
+                <div class="submissions-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Submitted</th>
+                                <th>Grade</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                                <tr>
+                                    <td>
+                                        <div class="student-info">
+                                            <strong>{{ submission.student_name }}</strong>
+                                            <small>{{ submission.username }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="date">{{ submission.submitted_at[:19] if submission.submitted_at else 'Draft' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if submission.grade is not none %}
+                                            <span class="grade-badge">{{ submission.grade }}/{{ quiz.max_points }}</span>
+                                        {% else %}
+                                            <span class="ungraded">Not graded</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.grade is not none %}
+                                            <span class="status-badge graded">
+                                                <i class="fas fa-check"></i> Graded
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge pending">
+                                                <i class="fas fa-clock"></i> Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button onclick="viewSubmission({{ submission.id }})" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            {% if submission.grade is none %}
+                                                <button onclick="gradeSubmission({{ submission.id }})" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-star"></i> Grade
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list fa-3x"></i>
+                    <h3>No Submissions Yet</h3>
+                    <p>Students haven't submitted any answers for this quiz yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Submission View Modal -->
+<div id="submissionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalStudentName">Student Submission</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="submissionContent">
+                <div class="submission-text">
+                    <h4>Answer:</h4>
+                    <div id="submissionAnswer"></div>
+                </div>
+                
+                <div class="ai-feedback" id="aiFeedback" style="display: none;">
+                    <h4><i class="fas fa-robot"></i> AI Feedback</h4>
+                    <div id="aiFeedbackContent"></div>
+                </div>
+                
+                <div class="grading-section">
+                    <h4>Grade Submission</h4>
+                    <form id="gradingForm">
+                        <input type="hidden" id="submissionId">
+                        <div class="form-group">
+                            <label for="grade">Grade (out of {{ quiz.max_points }})</label>
+                            <input type="number" id="grade" name="grade" min="0" max="{{ quiz.max_points }}" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="instructor_feedback">Instructor Feedback</label>
+                            <textarea id="instructor_feedback" name="instructor_feedback" rows="4" 
+                                      placeholder="Provide feedback for the student..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Grade
+                            </button>
+                            <button type="button" onclick="closeModal()" class="btn btn-secondary">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border-radius: 15px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-card.primary .stat-icon {
+    background: rgba(238, 75, 106, 0.1);
+    color: #ee4b6a;
+}
+
+.stat-card.success .stat-icon {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+}
+
+.stat-card.warning .stat-icon {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.stat-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.submissions-table {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.table th {
+    background: rgba(255,255,255,0.05);
+    font-weight: 600;
+    color: #333;
+}
+
+.student-info strong {
+    display: block;
+    color: #333;
+}
+
+.student-info small {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.grade-badge {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-weight: 500;
+}
+
+.ungraded {
+    color: #666;
+    font-style: italic;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.status-badge.graded {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+}
+
+.status-badge.pending {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.submission-text {
+    margin-bottom: 1.5rem;
+}
+
+.submission-text h4 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.ai-feedback {
+    background: rgba(52, 152, 219, 0.1);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.grading-section {
+    background: rgba(255,255,255,0.5);
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+</style>
+
+<script>
+// JavaScript for modal functionality
+function viewSubmission(submissionId) {
+    // This would typically fetch submission data via AJAX
+    fetch(`/api/submissions/${submissionId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('modalStudentName').textContent = `${data.student_name}'s Submission`;
+            document.getElementById('submissionAnswer').innerHTML = data.submission_text.replace(/\n/g, '<br>');
+            document.getElementById('submissionId').value = submissionId;
+            
+            if (data.ai_feedback) {
+                document.getElementById('aiFeedback').style.display = 'block';
+                document.getElementById('aiFeedbackContent').innerHTML = data.ai_feedback.replace(/\n/g, '<br>');
+            }
+            
+            if (data.grade !== null) {
+                document.getElementById('grade').value = data.grade;
+            }
+            
+            if (data.instructor_feedback) {
+                document.getElementById('instructor_feedback').value = data.instructor_feedback;
+            }
+            
+            document.getElementById('submissionModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error fetching submission:', error);
+            alert('Error loading submission details.');
+        });
+}
+
+function gradeSubmission(submissionId) {
+    viewSubmission(submissionId);
+}
+
+function closeModal() {
+    document.getElementById('submissionModal').style.display = 'none';
+}
+
+// Handle grading form submission
+document.getElementById('gradingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submissionId = document.getElementById('submissionId').value;
+    const grade = document.getElementById('grade').value;
+    const feedback = document.getElementById('instructor_feedback').value;
+    
+    fetch(`/api/submissions/${submissionId}/grade`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            grade: parseFloat(grade),
+            instructor_feedback: feedback
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Grade saved successfully!');
+            location.reload();
+        } else {
+            alert('Error saving grade: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving grade:', error);
+        alert('Error saving grade.');
+    });
+});
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('submissionModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

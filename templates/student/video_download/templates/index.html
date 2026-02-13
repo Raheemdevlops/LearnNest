@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Youtube Video Downloader</title>
+</head>
+
+<body style="margin:0; font-family: Arial, sans-serif; background-color: #121212; color: #e0e0e0;">
+
+    <!-- Header -->
+    <header style="background-color: #1e1e1e; padding: 20px 0; border-bottom: 1px solid #333;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+            <a style="display:flex; align-items:center; text-decoration:none; color:#fff; font-size: 1.5rem; font-weight:bold;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    style="width:40px; height:40px; padding:5px; background-color:#4f46e5; border-radius:50%; margin-right:10px;"
+                    viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                Youtube Downloader
+            </a>
+            <a href="/" style="background-color:#333; padding:8px 16px; border-radius:5px; text-decoration:none; color:#fff; font-weight:500; transition:0.3s;">
+                Download New
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section style="text-align:center; padding:50px 20px;">
+        <img src="./static/images/bg.jpg" alt="hero"
+            style="max-width: 600px; width:90%; border-radius:10px; margin-bottom:20px;">
+        <h1 style="font-size:2.5rem; margin-bottom:10px; color:#fff;">Free Youtube Video Downloader</h1>
+        <p style="color:#b0b0b0; font-size:1rem;">Download your favorite videos easily and quickly 😉✌</p>
+    </section>
+
+    <!-- Input Section -->
+    <section style="max-width: 700px; margin:0 auto; padding:20px;">
+        <div style="text-align:center; margin-bottom:30px;">
+            <h2 style="font-size:2rem; margin-bottom:10px; color:#fff;">Copy Paste Link Here 😁👍</h2>
+            <p style="color:#b0b0b0;">Paste the YouTube video link and click download! Use "Download New" for new videos.</p>
+        </div>
+
+        <!-- Video Download Form -->
+        <form action="/submit" method="post" style="display:flex; gap:10px; margin-bottom:20px;">
+            <input type="text" name="link" placeholder="Youtube Video Link mp4"
+                style="flex:1; padding:10px; border-radius:5px; border:none; background-color:#1e1e1e; color:#fff;" required>
+            <button type="submit"
+                style="background-color:#4f46e5; border:none; border-radius:50%; width:50px; height:50px; cursor:pointer;">
+                <img src="/static/images/down.jpg" alt="" style="width:100%; height:100%; object-fit:cover;">
+            </button>
+            <a href="/" style="display:flex; align-items:center; justify-content:center; width:50px; height:50px; background-color:#333; border-radius:50%;">
+                <img src="/static/images/add.jpg" alt="" style="width:40px; height:40px;">
+            </a>
+        </form>
+
+        <!-- Audio Download Form -->
+        <form action="/submit_audio" method="post" style="display:flex; gap:10px;">
+            <input type="text" name="link" placeholder="Youtube Video Link mp3"
+                style="flex:1; padding:10px; border-radius:5px; border:none; background-color:#1e1e1e; color:#fff;" required>
+            <button type="submit"
+                style="background-color:#4f46e5; border:none; border-radius:50%; width:50px; height:50px; cursor:pointer;">
+                <img src="/static/images/down.jpg" alt="" style="width:100%; height:100%; object-fit:cover;">
+            </button>
+            <a href="/" style="display:flex; align-items:center; justify-content:center; width:50px; height:50px; background-color:#333; border-radius:50%;">
+                <img src="/static/images/add.jpg" alt="" style="width:40px; height:40px;">
+            </a>
+        </form>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background-color:#1e1e1e; padding:20px 0; border-top:1px solid #333; text-align:center; color:#b0b0b0;">
+    </footer>
+
+</body>
+
+</html>

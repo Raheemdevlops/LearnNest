@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Assignment - {{ assignment.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="submit-container">
+    <!-- Hero Header -->
+    <div class="submit-hero">
+        <div class="hero-icon"><i class="fas fa-file-alt"></i></div>
+        <div class="hero-info">
+            <a href="{{ url_for('student_course_view', course_id=course_id) }}" class="breadcrumb-link">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <h1>{{ assignment.title }}</h1>
+            <p>{{ assignment.course_title }}</p>
+        </div>
+    </div>
+
+    <!-- Assignment Info -->
+    <div class="info-grid">
+        <div class="info-card">
+            <span class="info-label">Type</span>
+            <span class="info-value">{{ assignment.assignment_type|capitalize }}</span>
+        </div>
+        {% if assignment.due_date %}
+        <div class="info-card">
+            <span class="info-label">Due Date</span>
+            <span class="info-value">{{ assignment.due_date[:10] }}</span>
+        </div>
+        {% endif %}
+        {% if assignment.total_points %}
+        <div class="info-card">
+            <span class="info-label">Points</span>
+            <span class="info-value">{{ assignment.total_points }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if assignment.description %}
+    <div class="description-card">
+        <h3>Description</h3>
+        <div class="description-text">{{ assignment.description|safe }}</div>
+    </div>
+    {% endif %}
+
+    {% if existing_submission %}
+    <div class="existing-card">
+        <i class="fas fa-check-circle"></i>
+        <div>
+            <strong>Already Submitted</strong>
+            <p>Submitted: {{ existing_submission.submitted_at[:16] }}</p>
+            {% if existing_submission.grade %}
+            <span class="grade">Grade: {{ existing_submission.grade }}/{{ assignment.total_points }}</span>
+            {% else %}
+            <span class="pending">⏳ Awaiting Review</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Submission Form -->
+    <form method="POST" enctype="multipart/form-data" class="submit-form">
+        <h2><i class="fas fa-upload"></i> Submit Work</h2>
+
+        <div class="form-group">
+            <label>Submission Text</label>
+            <textarea name="submission_text" rows="8" placeholder="Enter your assignment...">{{ existing_submission.submission_text if existing_submission else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Upload File (Optional)</label>
+            <div class="file-zone">
+                <input type="file" name="submission_file" id="submission_file">
+                <div class="file-content">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <span>PDF, DOC, ZIP (Max 50MB)</span>
+                </div>
+            </div>
+            {% if existing_submission and existing_submission.file_path %}
+            <div class="previous-file">
+                <i class="fas fa-file-check"></i> Previous: {{ existing_submission.file_path.split('/')[-1] }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-paper-plane"></i> Submit
+            </button>
+            <a href="{{ url_for('student_course_view', course_id=course_id) }}" class="btn-cancel">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+:root {
+    --cyan: #00d4ff;
+    --purple: #a855f7;
+    --success: #22c55e;
+    --warning: #ffaa00;
+    --bg: #0a0a0a;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #ffffff;
+    --text-light: #aaa;
+}
+
+.submit-container {
+    background: var(--bg);
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    color: var(--text);
+}
+
+.submit-hero {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid var(--cyan);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.hero-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: #000;
+    flex-shrink: 0;
+}
+
+.hero-info h1 {
+    margin: 0.5rem 0 0 0;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-info p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.breadcrumb-link {
+    color: var(--text-light);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.breadcrumb-link:hover {
+    color: var(--cyan);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.info-card {
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.8), rgba(25, 25, 40, 0.8));
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.info-card:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+.info-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--cyan);
+    font-weight: 700;
+}
+
+.info-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.description-card,
+.existing-card {
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.8), rgba(25, 25, 40, 0.8));
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s;
+}
+
+.description-card:hover {
+    border-color: var(--cyan);
+}
+
+.description-card h3 {
+    margin: 0 0 1rem 0;
+    color: var(--cyan);
+    font-size: 1.1rem;
+}
+
+.description-text {
+    color: var(--text-light);
+    line-height: 1.6;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border-left: 3px solid var(--cyan);
+}
+
+.existing-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+    border: 2px solid rgba(34, 197, 94, 0.3);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.existing-card i {
+    font-size: 1.8rem;
+    color: var(--success);
+    margin-top: 0.25rem;
+}
+
+.existing-card strong {
+    color: var(--success);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.existing-card p {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.grade,
+.pending {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.grade {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success);
+}
+
+.pending {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--warning);
+}
+
+.submit-form {
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.9), rgba(25, 25, 40, 0.9));
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.submit-form h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.submit-form h2 i {
+    color: var(--cyan);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+.file-zone {
+    position: relative;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.file-zone:hover {
+    border-color: var(--purple);
+    background: rgba(168, 85, 247, 0.05);
+}
+
+.file-zone input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-content {
+    pointer-events: none;
+}
+
+.file-content i {
+    font-size: 2rem;
+    color: var(--purple);
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.file-content p {
+    margin: 0 0 0.25rem 0;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.file-content span {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    display: block;
+}
+
+.previous-file {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 6px;
+    color: var(--success);
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-submit,
+.btn-cancel {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    color: #000;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+}
+
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border: 2px solid var(--border);
+}
+
+.btn-cancel:hover {
+    border-color: var(--cyan);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+    .submit-hero {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function updateFileName(input) {
+    console.log('File selected:', input.files[0]?.name || 'No file');
+}
+</script>
+{% endblock %}

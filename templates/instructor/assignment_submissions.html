@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}Submissions - {{ assignment.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="submissions-admin-vip">
+    <div class="admin-header">
+        <div>
+            <h1 class="admin-title">
+                <i class="fas fa-clipboard-check"></i> Submissions Admin Panel
+            </h1>
+            <p class="admin-subtitle">{{ assignment.title }}</p>
+            <p class="course-name">{{ assignment.course_title }}</p>
+        </div>
+        <a href="{{ url_for('instructor_course_assignments', course_id=assignment.course_id) }}" 
+           class="btn-admin btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Assignments
+        </a>
+    </div>
+
+    <div class="admin-stats-grid">
+        <div class="stat-card-admin total">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_students }}</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+        </div>
+        <div class="stat-card-admin submitted">
+            <div class="stat-icon">📝</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.submitted }}</div>
+                <div class="stat-label">Submitted</div>
+                <div class="stat-percentage">{{ stats.submission_rate|round|int }}%</div>
+            </div>
+        </div>
+        <div class="stat-card-admin pending">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.pending_grading }}</div>
+                <div class="stat-label">Pending Grading</div>
+            </div>
+        </div>
+        <div class="stat-card-admin graded">
+            <div class="stat-icon">✅</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.graded }}</div>
+                <div class="stat-label">Graded</div>
+            </div>
+        </div>
+        <div class="stat-card-admin missing">
+            <div class="stat-icon">❌</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.not_submitted }}</div>
+                <div class="stat-label">Not Submitted</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="assignment-info-panel">
+        <div class="info-item">
+            <i class="fas fa-clock"></i>
+            <span>Due: {% if assignment.due_date %}{{ assignment.due_date[:16].replace('T', ' ') }}{% else %}No deadline{% endif %}</span>
+        </div>
+        <div class="info-item">
+            <i class="fas fa-star"></i>
+            <span>Max Points: {{ assignment.max_points }}</span>
+        </div>
+        <div class="info-item">
+            <i class="fas fa-tag"></i>
+            <span>Type: {{ (assignment.assignment_type or 'essay').title() }}</span>
+        </div>
+    </div>
+
+    <div class="submissions-table-container">
+        <div class="table-header">
+            <h2><i class="fas fa-list"></i> Student Submissions</h2>
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterSubmissions('all')">All ({{ stats.total_students }})</button>
+                <button class="filter-tab" onclick="filterSubmissions('submitted')">Submitted ({{ stats.submitted }})</button>
+                <button class="filter-tab" onclick="filterSubmissions('pending')">Pending Grading ({{ stats.pending_grading }})</button>
+                <button class="filter-tab" onclick="filterSubmissions('graded')">Graded ({{ stats.graded }})</button>
+                <button class="filter-tab" onclick="filterSubmissions('not_submitted')">Not Submitted ({{ stats.not_submitted }})</button>
+            </div>
+        </div>
+
+        <div class="submissions-table">
+            {% for student in students %}
+            <div class="submission-row {{ student.status }}" data-status="{{ student.status }}">
+                <div class="student-info">
+                    <div class="student-avatar">
+                        {{ student.full_name[0].upper() }}
+                    </div>
+                    <div class="student-details">
+                        <div class="student-name">{{ student.full_name }}</div>
+                        <div class="student-email">{{ student.email }}</div>
+                    </div>
+                </div>
+
+                <div class="submission-status-badge status-{{ student.status }}">
+                    {% if student.status == 'not_submitted' %}
+                        ❌ Not Submitted
+                    {% elif student.status == 'submitted' %}
+                        ⏳ Pending Grading
+                    {% else %}
+                        ✅ Graded
+                    {% endif %}
+                </div>
+
+                <div class="submission-details">
+                    {% if student.submitted_at %}
+                        <div class="detail-item">
+                            <i class="fas fa-calendar"></i>
+                            Submitted: {{ student.submitted_at[:16].replace('T', ' ') }}
+                        </div>
+                    {% endif %}
+                    
+                    {% if student.grade is not none %}
+                        <div class="detail-item grade-display">
+                            <i class="fas fa-star"></i>
+                            Grade: <strong>{{ student.grade }}/{{ assignment.max_points }}</strong>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="submission-actions">
+                    {% if student.submission_id %}
+                        <button class="btn-action btn-view" onclick="viewSubmission({{ student.submission_id }}, '{{ student.full_name }}', '{{ student.submission_text|default('')|replace("'", "\\'") }}', '{{ student.file_path|default('') }}', {% if student.grade is not none %}{{ student.grade }}{% else %}null{% endif %}, '{{ student.ai_feedback|default('')|replace("'", "\\'") }}', '{{ student.instructor_feedback|default('')|replace("'", "\\'") }}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn-action btn-grade" onclick="gradeSubmission({{ student.submission_id }}, '{{ student.full_name }}', {% if student.grade is not none %}{{ student.grade }}{% else %}null{% endif %}, '{{ student.instructor_feedback|default('')|replace("'", "\\'") }}')">
+                            <i class="fas fa-pen"></i> Grade
+                        </button>
+                    {% else %}
+                        <span class="no-submission-text">No submission yet</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="viewModal" class="modal-vip" style="display: none;">
+    <div class="modal-content-vip">
+        <div class="modal-header-vip">
+            <h3><i class="fas fa-file-alt"></i> Submission Details</h3>
+            <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+        </div>
+        <div class="modal-body-vip">
+            <div id="viewModalContent"></div>
+        </div>
+    </div>
+</div>
+
+<div id="gradeModal" class="modal-vip" style="display: none;">
+    <div class="modal-content-vip">
+        <div class="modal-header-vip">
+            <h3><i class="fas fa-pen"></i> Grade Submission</h3>
+            <button class="modal-close" onclick="closeModal('gradeModal')">&times;</button>
+        </div>
+        <div class="modal-body-vip">
+            <form id="gradeForm" onsubmit="submitGrade(event)">
+                <input type="hidden" id="submission_id" name="submission_id">
+                
+                <div class="form-group-modal">
+                    <label>Student: <strong id="studentName"></strong></label>
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="grade">Grade (out of {{ assignment.max_points }})</label>
+                    <input type="number" id="grade" name="grade" min="0" max="{{ assignment.max_points }}" step="0.1">
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="instructor_feedback">Instructor Feedback</label>
+                    <textarea id="instructor_feedback" name="instructor_feedback" rows="6" 
+                              placeholder="Provide feedback to the student..."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn-modal btn-primary">
+                        <i class="fas fa-save"></i> Save Grade
+                    </button>
+                    <button type="button" class="btn-modal btn-secondary" onclick="closeModal('gradeModal')">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --vip-black: #000000;
+    --vip-dark: #0a0a0a;
+    --vip-gray: #1a1a1a;
+    --vip-border: #2a2a2a;
+    --vip-primary: #00d4ff;
+    --vip-success: #00ff88;
+    --vip-warning: #ffaa00;
+    --vip-danger: #ff0055;
+    --vip-purple: #a855f7;
+}
+
+.submissions-admin-vip {
+    min-height: 100vh;
+    background: var(--vip-black);
+    padding: 2rem;
+    color: #ffffff;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid var(--vip-primary);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+.admin-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.admin-subtitle {
+    font-size: 1.2rem;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.course-name {
+    font-size: 1rem;
+    color: #888;
+}
+
+.btn-admin {
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    background: var(--vip-gray);
+    color: #fff;
+    border: 2px solid var(--vip-border);
+}
+
+.btn-admin:hover {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card-admin {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(26, 26, 26, 0.95));
+    border: 2px solid var(--vip-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card-admin:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+}
+
+.stat-card-admin.submitted {
+    border-color: var(--vip-primary);
+}
+
+.stat-card-admin.pending {
+    border-color: var(--vip-warning);
+}
+
+.stat-card-admin.graded {
+    border-color: var(--vip-success);
+}
+
+.stat-card-admin .stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-card-admin .stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #fff;
+}
+
+.stat-card-admin .stat-label {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.stat-percentage {
+    font-size: 0.85rem;
+    color: var(--vip-primary);
+    font-weight: 600;
+}
+
+.assignment-info-panel {
+    display: flex;
+    gap: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid var(--vip-border);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ccc;
+}
+
+.info-item i {
+    color: var(--vip-primary);
+}
+
+.submissions-table-container {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(26, 26, 26, 0.95));
+    border: 2px solid var(--vip-border);
+    border-radius: 20px;
+    padding: 2rem;
+}
+
+.table-header {
+    margin-bottom: 2rem;
+}
+
+.table-header h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: var(--vip-primary);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--vip-border);
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-tab:hover,
+.filter-tab.active {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.submissions-table {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.submission-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr 1.5fr;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--vip-border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.submission-row:hover {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.student-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.25rem;
+    color: #000;
+}
+
+.student-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.student-email {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.submission-status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.status-not_submitted {
+    background: rgba(255, 0, 85, 0.2);
+    color: var(--vip-danger);
+    border: 1px solid var(--vip-danger);
+}
+
+.status-submitted {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--vip-warning);
+    border: 1px solid var(--vip-warning);
+}
+
+.status-graded {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--vip-success);
+    border: 1px solid var(--vip-success);
+}
+
+.submission-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-item {
+    font-size: 0.9rem;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-item i {
+    color: var(--vip-primary);
+}
+
+.grade-display strong {
+    color: var(--vip-success);
+}
+
+.submission-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-action.btn-view {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--vip-primary);
+    border: 1px solid var(--vip-primary);
+}
+
+.btn-action.btn-view:hover {
+    background: var(--vip-primary);
+    color: #000;
+}
+
+.btn-action.btn-grade {
+    background: rgba(168, 85, 247, 0.2);
+    color: var(--vip-purple);
+    border: 1px solid var(--vip-purple);
+}
+
+.btn-action.btn-grade:hover {
+    background: var(--vip-purple);
+    color: #000;
+}
+
+.no-submission-text {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+.modal-vip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content-vip {
+    background: var(--vip-gray);
+    border: 2px solid var(--vip-primary);
+    border-radius: 20px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header-vip {
+    padding: 2rem;
+    border-bottom: 1px solid var(--vip-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header-vip h3 {
+    font-size: 1.5rem;
+    color: var(--vip-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 0, 85, 0.2);
+    color: var(--vip-danger);
+}
+
+.modal-body-vip {
+    padding: 2rem;
+}
+
+.form-group-modal {
+    margin-bottom: 1.5rem;
+}
+
+.form-group-modal label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.form-group-modal input,
+.form-group-modal textarea {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--vip-border);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-group-modal textarea {
+    resize: vertical;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-modal {
+    flex: 1;
+    padding: 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-modal.btn-primary {
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    color: #000;
+}
+
+.btn-modal.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.5);
+}
+
+.btn-modal.btn-secondary {
+    background: var(--vip-dark);
+    color: #fff;
+    border: 2px solid var(--vip-border);
+}
+
+@media (max-width: 1024px) {
+    .submission-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .submission-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function filterSubmissions(status) {
+    const rows = document.querySelectorAll('.submission-row');
+    const tabs = document.querySelectorAll('.filter-tab');
+    
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    rows.forEach(row => {
+        if (status === 'all' || row.dataset.status === status) {
+            row.style.display = 'grid';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function viewSubmission(submissionId, studentName, submissionText, filePath, grade, aiFeedback, instructorFeedback) {
+    const content = `
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="color: var(--vip-primary); margin-bottom: 1rem;">Student: ${studentName}</h4>
+            
+            ${submissionText ? `
+                <div style="margin-bottom: 1.5rem;">
+                    <strong style="color: #fff;">Submission Text:</strong>
+                    <div style="margin-top: 0.5rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; white-space: pre-wrap;">
+                        ${submissionText}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${filePath ? `
+                <div style="margin-bottom: 1.5rem;">
+                    <strong style="color: #fff;">Submitted File:</strong>
+                    <div style="margin-top: 0.5rem;">
+                        <a href="/download/${filePath}" style="color: var(--vip-primary); text-decoration: underline;">
+                            <i class="fas fa-download"></i> Download Submission
+                        </a>
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${grade !== null ? `
+                <div style="margin-bottom: 1.5rem;">
+                    <strong style="color: #fff;">Grade:</strong>
+                    <div style="margin-top: 0.5rem; font-size: 1.5rem; color: var(--vip-success);">
+                        ${grade} points
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${instructorFeedback ? `
+                <div style="margin-bottom: 1.5rem;">
+                    <strong style="color: #fff;">Instructor Feedback:</strong>
+                    <div style="margin-top: 0.5rem; padding: 1rem; background: rgba(0,212,255,0.1); border-radius: 8px; border-left: 3px solid var(--vip-primary);">
+                        ${instructorFeedback}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${aiFeedback ? `
+                <div>
+                    <strong style="color: #fff;">AI Feedback:</strong>
+                    <div style="margin-top: 0.5rem; padding: 1rem; background: rgba(168,85,247,0.1); border-radius: 8px; border-left: 3px solid var(--vip-purple);">
+                        ${aiFeedback}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    document.getElementById('viewModalContent').innerHTML = content;
+    document.getElementById('viewModal').style.display = 'flex';
+}
+
+function gradeSubmission(submissionId, studentName, currentGrade, currentFeedback) {
+    document.getElementById('submission_id').value = submissionId;
+    document.getElementById('studentName').textContent = studentName;
+    document.getElementById('grade').value = currentGrade || '';
+    document.getElementById('instructor_feedback').value = currentFeedback || '';
+    document.getElementById('gradeModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function submitGrade(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const submissionId = formData.get('submission_id');
+    
+    fetch(`{{ url_for('instructor_grade_submission', course_id=assignment.course_id, assignment_id=assignment.id, submission_id=0) }}`.replace('/0', `/${submissionId}`), {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Grade saved successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error submitting grade');
+        console.error(error);
+    });
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-vip')) {
+        e.target.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

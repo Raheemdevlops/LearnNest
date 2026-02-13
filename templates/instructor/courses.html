@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+
+{% block title %}My Courses - LearnNest EMAIL769
+{% endblock %}
+
+{% block content %}
+<div class="page-container" style="margin-top: 60px;">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-book-open"></i> My Courses</h1>
+            <p>Create and manage your courses, track student enrollments.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_create_course') }}" class="btn btn-primary btn-glow" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border); transition: all 0.3s ease;" onmouseover="this.style.background='var(--warning)'; this.style.borderColor='var(--warning)'; this.style.color='white';" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)';">
+                <i class="fas fa-plus"></i> Create New Course
+            </a>
+        </div>
+    </div>
+    
+    {% if courses %}
+        <div class="courses-grid">
+            {% for course in courses %}
+                <div class="course-card">
+                    <div class="course-card-inner">
+                        <!-- Card Header -->
+                        <div class="course-header">
+                            <div class="course-title-section">
+                                <div class="course-meta">
+                                    <span class="course-code">{{ course.course_code }}</span>
+                                    {% if course.approved_count > 0 %}
+                                        <span class="status-badge status-active">
+                                            <i class="fas fa-check-circle"></i> Active
+                                        </span>
+                                    {% else %}
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-pause-circle"></i> No Students
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="course-title">{{ course.title }}</h3>
+                            </div>
+                            <div class="course-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Course Content -->
+                        <div class="course-content">
+                            <p class="course-description">
+                                {{ course.description[:150] }}{% if course.description|length > 150 %}...{% endif %}
+                            </p>
+                            
+                            {% if course.category %}
+                                <div class="course-category">
+                                    <span class="category-tag">{{ course.category }}</span>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Statistics Cards -->
+                            <div class="stats-container">
+                                <div class="stat-card">
+                                    <div class="stat-icon students">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <span class="stat-number">{{ course.approved_count }}</span>
+                                        <span class="stat-label">Students</span>
+                                    </div>
+                                </div>
+                                
+                                {% if course.pending_count > 0 %}
+                                <div class="stat-card">
+                                    <div class="stat-icon pending">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <span class="stat-number">{{ course.pending_count }}</span>
+                                        <span class="stat-label">Pending</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="stat-card">
+                                    <div class="stat-icon calendar">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <span class="stat-date">{{ course.created_at[:7] if course.created_at else 'N/A' }}</span>
+                                        <span class="stat-label">Created</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Course Dates -->
+                            {% if course.start_date or course.end_date %}
+                                <div class="course-timeline">
+                                    {% if course.start_date %}
+                                        <div class="timeline-item">
+                                            <i class="fas fa-play-circle"></i>
+                                            <span>Start: {{ course.start_date }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if course.end_date %}
+                                        <div class="timeline-item">
+                                            <i class="fas fa-flag-checkered"></i>
+                                            <span>End: {{ course.end_date }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- AI Notes PDFs Display -->
+                        {% if course.ai_notes %}
+                        <div class="ai-notes-section">
+                            <h5 class="ai-notes-title">
+                                <i class="fas fa-file-pdf"></i> AI Notes ({{ course.ai_notes|length }})
+                            </h5>
+                            <div class="ai-notes-list">
+                                {% for note in course.ai_notes %}
+                                <div class="note-item">
+                                    <div class="note-info">
+                                        <span class="note-topic">{{ note.topic[:40] }}</span>
+                                        <span class="note-date">{{ note.created_at[:10] }}</span>
+                                    </div>
+                                    <a href="/uploads/{{ note.pdf_path }}" class="btn-view-pdf" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <a href="{{ url_for('ai_notes_page', course_id=course.id) }}" class="view-all-notes">View All Notes</a>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Action Buttons -->
+                        <div class="course-actions">
+                            <div class="action-grid">
+                                <a href="{{ url_for('instructor_course_content', course_id=course.id) }}" class="action-btn content">
+                                    <i class="fas fa-video"></i>
+                                    <span>Content</span>
+                                </a>
+                                <a href="{{ url_for('instructor_course_quizzes', course_id=course.id) }}" class="action-btn quizzes">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <span>Quizzes</span>
+                                </a>
+                                <a href="{{ url_for('instructor_course_assignments', course_id=course.id) }}" class="action-btn assignments" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border); transition: all 0.3s ease;" onmouseover="this.style.background='#a855f7'; this.style.borderColor='#a855f7'; this.style.color='white';" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)';">
+                                    <i class="fas fa-tasks"></i>
+                                    <span>Assignments</span>
+                                </a>
+                                <a href="{{ url_for('instructor_course_students', course_id=course.id) }}" class="action-btn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border); transition: all 0.3s ease;" onmouseover="this.style.background='var(--warning)'; this.style.borderColor='var(--warning)'; this.style.color='white';" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)';">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Progress</span>
+                                </a>
+                                <a href="{{ url_for('instructor_course_discussions', course_id=course.id) }}" class="action-btn discussions">
+                                    <i class="fas fa-comments"></i>
+                                    <span>Discussions</span>
+                                </a>
+                                <a href="{{ url_for('instructor_enrollments') }}" class="action-btn students">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>Students</span>
+                                </a>
+                                <a href="{{ url_for('ai_notes_page', course_id=course.id) }}" class="action-btn ai-notes">
+                                    <i class="fas fa-brain"></i>
+                                    <span>AI Notes</span>
+                                </a>
+                                <a href="{{ url_for('instructor_edit_course', course_id=course.id) }}" class="action-btn edit">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <a href="{{ url_for('edit_instructor_profile') }}" class="action-btn profile" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border); transition: all 0.3s ease;" onmouseover="this.style.background='#00d4ff'; this.style.borderColor='#00d4ff'; this.style.color='#000';" onmouseout="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)';">
+                                    <i class="fas fa-user"></i>
+                                    <span>Edit Profile</span>
+                                </a>
+                            </div>
+                            <!-- Delete Button (Full Width & Centered) -->
+                            <form method="POST" action="{{ url_for('instructor_delete_course', course_id=course.id) }}" onsubmit="return confirm('Are you sure you want to delete &quot;{{ course.title }}&quot;? This action cannot be undone.');" class="delete-button-form">
+                                <button type="submit" class="action-btn-delete">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Delete Course</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-content">
+                <div class="empty-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h2>No Courses Created</h2>
+                <p>Get started by creating your first course. Students will be able to discover and enroll in your courses using enrollment keys.</p>
+                <a href="{{ url_for('instructor_create_course') }}" class="btn btn-primary btn-glow btn-large">
+                    <i class="fas fa-plus"></i> Create Your First Course
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+    --bg-card: #1a1a1a;
+    --bg-card-hover: #222222;
+    --border-primary: #2a2a2a;
+    --border-secondary: #333333;
+    --border-accent: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-tertiary: #808080;
+    --accent-red: #ff2e63;
+    --accent-blue: #00a8ff;
+    --accent-green: #00d8a7;
+    --accent-purple: #9d4edd;
+    --accent-orange: #ff9e00;
+    --accent-cyan: #00f5d4;
+    --glow-red: 0 0 20px rgba(255, 46, 99, 0.4);
+    --glow-blue: 0 0 20px rgba(0, 168, 255, 0.4);
+    --glow-green: 0 0 20px rgba(0, 216, 167, 0.4);
+    --glow-purple: 0 0 20px rgba(157, 78, 221, 0.4);
+    --glow-orange: 0 0 20px rgba(255, 158, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.8);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.9);
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-content h1 i {
+    color: var(--accent-blue);
+    text-shadow: var(--glow-blue);
+}
+
+.header-content p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 400;
+}
+
+.header-actions .btn {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    color: var(--text-primary);
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-blue);
+    background: linear-gradient(135deg, #0096ff, #0077b6);
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.course-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.course-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green), var(--accent-purple));
+    border-radius: var(--border-radius-xl);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: subtract;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    padding: 1px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.course-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+    background: var(--bg-card-hover);
+}
+
+.course-card:hover::before {
+    opacity: 1;
+}
+
+.course-card-inner {
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.course-title-section {
+    flex: 1;
+}
+
+.course-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.course-code {
+    background: var(--bg-tertiary);
+    color: var(--accent-cyan);
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid var(--border-accent);
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.status-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid;
+}
+
+.status-active {
+    background: rgba(0, 216, 167, 0.1);
+    color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.status-inactive {
+    background: rgba(128, 128, 128, 0.1);
+    color: var(--text-tertiary);
+    border-color: var(--text-tertiary);
+}
+
+.course-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.course-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-blue);
+    font-size: 1.25rem;
+    border: 1px solid var(--border-primary);
+    transition: all 0.3s ease;
+}
+
+.course-card:hover .course-icon {
+    background: var(--accent-blue);
+    color: var(--text-primary);
+    box-shadow: var(--glow-blue);
+}
+
+.course-content {
+    margin-bottom: 2rem;
+}
+
+.course-description {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    font-weight: 400;
+}
+
+.course-category {
+    margin-bottom: 1.5rem;
+}
+
+.category-tag {
+    background: var(--bg-tertiary);
+    color: var(--accent-purple);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid var(--border-accent);
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transition: left 0.6s ease;
+}
+
+.stat-card:hover::before {
+    left: 100%;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-secondary);
+    background: var(--bg-card);
+}
+
+.stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 2;
+}
+
+.stat-icon.students {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-green);
+    color: var(--accent-green);
+}
+
+.stat-icon.pending {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-orange);
+    color: var(--accent-orange);
+}
+
+.stat-icon.calendar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.stat-card:hover .stat-icon.students {
+    background: var(--accent-green);
+    color: var(--text-primary);
+    box-shadow: var(--glow-green);
+}
+
+.stat-card:hover .stat-icon.pending {
+    background: var(--accent-orange);
+    color: var(--text-primary);
+    box-shadow: var(--glow-orange);
+}
+
+.stat-card:hover .stat-icon.calendar {
+    background: var(--accent-blue);
+    color: var(--text-primary);
+    box-shadow: var(--glow-blue);
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 2;
+}
+
+.stat-number {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-date {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.course-timeline {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    position: relative;
+}
+
+.course-timeline::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    top: 2rem;
+    bottom: 2rem;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--accent-blue), var(--accent-green));
+}
+
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.85rem;
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.timeline-item:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+.timeline-item i {
+    color: var(--accent-blue);
+    width: 14px;
+    position: relative;
+    z-index: 2;
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.action-btn:hover::before {
+    left: 100%;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    color: var(--text-primary);
+    border-color: transparent;
+}
+
+.action-btn.content:hover {
+    background: linear-gradient(135deg, var(--accent-blue), #0077b6);
+    box-shadow: var(--glow-blue);
+}
+
+.action-btn.quizzes:hover {
+    background: linear-gradient(135deg, var(--accent-green), #00a896);
+    box-shadow: var(--glow-green);
+}
+
+.action-btn.discussions:hover {
+    background: linear-gradient(135deg, var(--accent-purple), #7b2cbf);
+    box-shadow: var(--glow-purple);
+}
+
+.action-btn.students:hover {
+    background: linear-gradient(135deg, var(--accent-red), #c1121f);
+    box-shadow: var(--glow-red);
+}
+
+.action-btn.ai-notes:hover {
+    background: linear-gradient(135deg, var(--accent-cyan), #00bcd4);
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+}
+
+.action-btn.edit:hover {
+    background: linear-gradient(135deg, var(--accent-orange), #e85d04);
+    box-shadow: var(--glow-orange);
+}
+
+/* Delete Button Styling */
+.delete-button-form {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.action-btn-delete {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: linear-gradient(135deg, #ff2e63 0%, #ff0055 100%);
+    color: var(--text-primary);
+    border: 2px solid #ff2e63;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(255, 46, 99, 0.3), inset 0 0 20px rgba(255, 46, 99, 0.1);
+}
+
+.action-btn-delete::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.action-btn-delete:hover::before {
+    left: 100%;
+}
+
+.action-btn-delete:hover {
+    transform: translateY(-3px) scale(1.02);
+    background: linear-gradient(135deg, #ff0055 0%, #ff2e63 100%);
+    border-color: #ff66a3;
+    box-shadow: 0 10px 30px rgba(255, 46, 99, 0.6), inset 0 0 30px rgba(255, 46, 99, 0.2);
+    color: #ffffff;
+}
+
+.action-btn-delete i {
+    font-size: 1.1rem;
+}
+
+.action-btn-delete span {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.action-btn-delete:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.ai-notes-section {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ai-notes-title {
+    margin: 0 0 0.75rem 0;
+    color: var(--accent-cyan);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ai-notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.note-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+    padding: 0.6rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-primary);
+    font-size: 0.8rem;
+}
+
+.note-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.note-topic {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.note-date {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+.btn-view-pdf {
+    background: var(--accent-cyan);
+    color: var(--bg-primary);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-view-pdf:hover {
+    background: #00f5d4;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+}
+
+.view-all-notes {
+    display: inline-block;
+    color: var(--accent-cyan);
+    font-size: 0.75rem;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid var(--accent-cyan);
+    transition: all 0.2s ease;
+}
+
+.view-all-notes:hover {
+    background: var(--accent-cyan);
+    color: var(--bg-primary);
+}
+
+.empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.empty-state-content {
+    max-width: 500px;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-card);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem;
+    font-size: 2rem;
+    color: var(--accent-blue);
+    border: 2px solid var(--border-primary);
+}
+
+.empty-state h2 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.btn-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-glow:hover {
+    box-shadow: var(--glow-blue);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    border-radius: var(--border-radius);
+}
+
+@media (max-width: 1024px) {
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .courses-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .course-card-inner {
+        padding: 1.5rem;
+    }
+    
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .course-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .course-meta {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h1 {
+        font-size: 2rem;
+    }
+    
+    .course-card-inner {
+        padding: 1.25rem;
+    }
+    
+    .action-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

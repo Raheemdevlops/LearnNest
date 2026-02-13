@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - {{ course.title }} - LearnNest{% endblock %}
+
+{% block content %}
+<div class="vip-container">
+    <div class="vip-header">
+        <div class="header-left">
+            <h1 class="vip-title">
+                <i class="fas fa-tasks"></i> Assignment Management
+            </h1>
+            <p class="vip-subtitle">{{ course.title }} ({{ course.course_code }})</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('instructor_course_content', course_id=course.id) }}" class="btn-vip btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Course
+            </a>
+            <a href="{{ url_for('instructor_create_assignment', course_id=course.id) }}" class="btn-vip btn-primary">
+                <i class="fas fa-plus"></i> Create Assignment
+            </a>
+        </div>
+    </div>
+
+    {% if assignments %}
+    <div class="assignments-grid">
+        {% for assignment in assignments %}
+        <div class="assignment-card vip-card">
+            <div class="card-glow"></div>
+            <div class="assignment-header">
+                <div class="assignment-type-badge {{ assignment.assignment_type or 'essay' }}">
+                    {% if assignment.assignment_type == 'quiz' %}
+                        <i class="fas fa-question-circle"></i> Quiz
+                    {% elif assignment.assignment_type == 'project' %}
+                        <i class="fas fa-project-diagram"></i> Project
+                    {% elif assignment.assignment_type == 'presentation' %}
+                        <i class="fas fa-presentation"></i> Presentation
+                    {% else %}
+                        <i class="fas fa-file-alt"></i> Essay
+                    {% endif %}
+                </div>
+                <div class="assignment-status {{ assignment.status or 'draft' }}">
+                    {{ (assignment.status or 'draft').upper() }}
+                </div>
+            </div>
+
+            <div class="assignment-body">
+                <h3 class="assignment-title">{{ assignment.title }}</h3>
+                <p class="assignment-description">{{ assignment.description[:150] }}{% if assignment.description and assignment.description|length > 150 %}...{% endif %}</p>
+
+                <div class="assignment-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        {% if assignment.due_date %}
+                            Due: {{ assignment.due_date[:16].replace('T', ' ') }}
+                        {% else %}
+                            No deadline
+                        {% endif %}
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-star"></i>
+                        {{ assignment.max_points }} points
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        Created: {{ assignment.created_at[:10] }}
+                    </div>
+                </div>
+
+                <div class="submission-stats">
+                    <div class="stat-bar">
+                        <div class="stat-item">
+                            <div class="stat-icon enrolled">👥</div>
+                            <div class="stat-details">
+                                <div class="stat-value">{{ assignment.enrolled_students }}</div>
+                                <div class="stat-label">Students</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon submitted">📝</div>
+                            <div class="stat-details">
+                                <div class="stat-value">{{ assignment.total_submissions }}</div>
+                                <div class="stat-label">Submitted</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon graded">✅</div>
+                            <div class="stat-details">
+                                <div class="stat-value">{{ assignment.graded_count }}</div>
+                                <div class="stat-label">Graded</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if assignment.enrolled_students > 0 %}
+                    <div class="progress-visualization">
+                        <div class="progress-label">
+                            <span>Submission Progress</span>
+                            <span>{{ ((assignment.total_submissions / assignment.enrolled_students) * 100) | round | int }}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: {{ ((assignment.total_submissions / assignment.enrolled_students) * 100) | round }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="assignment-actions">
+                <a href="{{ url_for('instructor_assignment_submissions', course_id=course.id, assignment_id=assignment.id) }}" 
+                   class="btn-action btn-view">
+                    <i class="fas fa-users"></i> View Submissions
+                    {% if assignment.total_submissions - assignment.graded_count > 0 %}
+                        <span class="pending-badge">{{ assignment.total_submissions - assignment.graded_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state-vip">
+        <div class="empty-icon">📋</div>
+        <h3>No Assignments Yet</h3>
+        <p>Create your first assignment to get started</p>
+        <a href="{{ url_for('instructor_create_assignment', course_id=course.id) }}" class="btn-vip btn-primary btn-lg">
+            <i class="fas fa-plus"></i> Create Assignment
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+:root {
+    --vip-black: #000000;
+    --vip-dark: #0a0a0a;
+    --vip-gray: #1a1a1a;
+    --vip-border: #2a2a2a;
+    --vip-primary: #00d4ff;
+    --vip-success: #00ff88;
+    --vip-warning: #ffaa00;
+    --vip-danger: #ff0055;
+    --vip-purple: #a855f7;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.vip-container {
+    min-height: 100vh;
+    background: var(--vip-black);
+    padding: 2rem;
+    color: #ffffff;
+}
+
+.vip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid var(--vip-primary);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+    animation: slideIn 0.6s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vip-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.vip-subtitle {
+    color: #aaa;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-vip {
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-vip.btn-primary {
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    color: #000;
+}
+
+.btn-vip.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);
+}
+
+.btn-vip.btn-secondary {
+    background: var(--vip-gray);
+    color: #fff;
+    border-color: var(--vip-border);
+}
+
+.btn-vip.btn-secondary:hover {
+    border-color: var(--vip-primary);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.assignment-card {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(26, 26, 26, 0.95));
+    border: 2px solid var(--vip-border);
+    border-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.assignment-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: -1;
+}
+
+.assignment-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--vip-primary);
+}
+
+.assignment-card:hover::before {
+    opacity: 0.3;
+}
+
+.card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.1), transparent);
+    pointer-events: none;
+}
+
+.assignment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.assignment-type-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.assignment-type-badge.quiz {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--vip-primary);
+    border: 1px solid var(--vip-primary);
+}
+
+.assignment-type-badge.essay {
+    background: rgba(168, 85, 247, 0.2);
+    color: var(--vip-purple);
+    border: 1px solid var(--vip-purple);
+}
+
+.assignment-type-badge.project {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--vip-success);
+    border: 1px solid var(--vip-success);
+}
+
+.assignment-type-badge.presentation {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--vip-warning);
+    border: 1px solid var(--vip-warning);
+}
+
+.assignment-status {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.assignment-status.published {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--vip-success);
+    border: 1px solid var(--vip-success);
+}
+
+.assignment-status.draft {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--vip-warning);
+    border: 1px solid var(--vip-warning);
+}
+
+.assignment-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #fff;
+}
+
+.assignment-description {
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.assignment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.meta-item i {
+    color: var(--vip-primary);
+    width: 20px;
+}
+
+.submission-stats {
+    margin-bottom: 1.5rem;
+}
+
+.stat-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 1px solid var(--vip-border);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-details {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.progress-visualization {
+    margin-top: 1rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.progress-bar-container {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--vip-primary), var(--vip-purple));
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+.assignment-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    text-align: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.btn-action.btn-view {
+    background: linear-gradient(135deg, var(--vip-primary), var(--vip-purple));
+    color: #000;
+}
+
+.btn-action.btn-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+}
+
+.pending-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--vip-danger);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
+}
+
+.empty-state-vip {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(26, 26, 26, 0.95));
+    border: 2px dashed var(--vip-border);
+    border-radius: 20px;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-vip h3 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #fff;
+}
+
+.empty-state-vip p {
+    color: #888;
+    margin-bottom: 2rem;
+}
+
+.btn-lg {
+    padding: 1.25rem 2.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .assignments-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .vip-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-vip {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

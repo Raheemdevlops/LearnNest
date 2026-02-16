@@ -19,3 +19,4 @@ pandas
 pypdf
 sift-stack-py
 yt-dlp
+pytubefix
